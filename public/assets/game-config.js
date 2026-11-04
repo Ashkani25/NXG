@@ -8,8 +8,8 @@ window.NEXORA_CONFIG = {
   APP_NAME: 'BERMUDA NXG',
   
   // API and WebSocket URLs - UPDATE THIS FOR RAILWAY DEPLOYMENT
-  API_URL: '', // e.g., 'https://your-app.railway.app'
-  WS_URL: '',  // e.g., 'wss://your-app.railway.app'
+  API_URL: 'https://nxg-production.up.railway.app',
+  WS_URL: 'wss://nxg-production.up.railway.app',
   
   // Match settings
   MATCH_SECONDS: 300,
