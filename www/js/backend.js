@@ -29,7 +29,7 @@
   const newProfile = (name, extra) => Object.assign({
     id: uid(), name, avatar: 'club0', team: 'club0', form: 0, level: 1, xp: 0, coins: 1500, gems: 20, trophies: 0,
     stats: { played: 0, wins: 0, losses: 0, goals: 0, conceded: 0, streak: 0, best: 0 },
-    owned: { balls: FREE_BALLS.slice(), fields: FREE_FIELDS.slice() }, equip: { ball: 4, field: 'stadium' },
+    owned: { balls: FREE_BALLS.slice(), fields: FREE_FIELDS.slice(), teams: [G.VIP_FREE] }, equip: { ball: 4, field: 'stadium' },
     daily: { day: 0, last: '' }, quests: { date: '', list: [] }, friends: [], reqs: [],
     created: Date.now(), country: '', bio: ''
   }, extra || {});
@@ -66,7 +66,7 @@
       onChange: f => listeners.auth.push(f)
     },
     profile: {
-      async get() { ensureQuests(); const p = clone(me()); p.league = leagueOf(p.trophies); p.xpNeed = xpNeed(p.level); p.rank = null; return p },
+      async get() { ensureQuests(); const raw = me(); if (raw && raw.owned) { raw.owned.teams = (G.TEAMS||[]).filter(t=>G.isVip(t.id)).map(t=>t.id); raw.owned.balls = Array.from({length:G.NB},(_,i)=>i); raw.owned.fields = (G.FIELDS||[]).map(f=>f.id); } const p = clone(raw); p.league = leagueOf(p.trophies); p.xpNeed = xpNeed(p.level); p.rank = null; return p },
       async update(patch) { const p = me(), ok = ['name', 'avatar', 'team', 'form', 'bio', 'country']; for (const k of ok) if (k in patch) p[k] = k === 'name' ? String(patch[k]).trim().slice(0, 16) || p.name : patch[k]; touch(); return B.profile.get() },
       async publicProfile() { return pub(me()) },
       search: async () => []
@@ -79,7 +79,7 @@
     },
     shop: {
       async items() {
-        const p = me(), out = []; const ob = p.owned.balls, of = p.owned.fields;
+        const p = me(), out = []; p.owned.balls = Array.from({length:G.NB},(_,i)=>i); p.owned.fields = (G.FIELDS||[]).map(f=>f.id); p.owned.teams = (G.TEAMS||[]).filter(t=>G.isVip(t.id)).map(t=>t.id); const ob = p.owned.balls, of = p.owned.fields;
         for (let i = 0; i < G.NB; i++) out.push({ id: 'ball:' + i, type: 'ball', key: i, name: G.ballName(i), sub: 'Trail: ' + G.TRN[i], price: BALL_PRICE(i), cur: 'coins', owned: ob.includes(i), equipped: p.equip.ball === i, img: 'assets/balls/s' + i + '.webp' });
         G.FIELDS.forEach(f => out.push({ id: 'field:' + f.id, type: 'field', key: f.id, name: f.name + ' Pitch', sub: 'Pitch', price: FIELD_PRICE(f.id), cur: 'coins', owned: of.includes(f.id), equipped: p.equip.field === f.id, img: 'assets/fields/t_' + f.id + '.webp' }));
         for (const k in CFG.CHESTS) out.push({ id: 'chest:' + k, type: 'chest', key: k, name: CFG.CHESTS[k].name, sub: 'Random rewards', price: CFG.CHESTS[k].price, cur: CFG.CHESTS[k].cur, owned: false, img: 'assets/ui/' + CFG.CHESTS[k].img + '.webp' });
@@ -88,9 +88,10 @@
       async buy(id) {
         const [type, key] = id.split(':'), p = me();
         if (type === 'pack') throw new Error('Purchases need the online store');
-        if (type === 'chest') return B.shop.openChest(key);
+        if (type === 'chest') return B.shop.openChest(key, true);
+        if (type === 'team') { if (!G.isVip(key)) throw new Error('Item not found'); if (!p.owned.teams) p.owned.teams = []; if (!p.owned.teams.includes(key)) p.owned.teams.push(key); touch(); return { granted: { item: G.T(key).name } } }
         const items = await B.shop.items(), it = items.find(x => x.id === id); if (!it) throw new Error('Item not found'); if (it.owned) throw new Error('Already owned');
-        if (p[it.cur] < it.price) throw new Error('Not enough ' + it.cur); p[it.cur] -= it.price;
+        /* temporary open-store mode: no currency deduction */
         if (type === 'ball') p.owned.balls.push(+key); else p.owned.fields.push(key); touch(); return { granted: { item: it.name } }
       },
       async equip(type, key) { const p = me(); if (type === 'ball') { if (!p.owned.balls.includes(+key)) throw new Error('Locked'); p.equip.ball = +key } else { if (!p.owned.fields.includes(key)) throw new Error('Locked'); p.equip.field = key } touch(); return true },

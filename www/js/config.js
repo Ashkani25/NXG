@@ -6,7 +6,7 @@ window.NEXORA_CONFIG = {
   API_URL: '',                      // e.g. https://api.yourdomain.com   (Express REST, served by server/)
   WS_URL: '',                       // e.g. wss://api.yourdomain.com     (Colyseus; empty = derived from API_URL)
   MATCH_SECONDS: 300,               // every match = 5 minutes, unlimited goals, golden goal if tied
-  APP_VERSION: '1.1.0',
+  APP_VERSION: '1.0.0',
   TURN_SECONDS: 15,                 // online turn timer
     MAX_CHAT_LEN: 140,
   XP_NEED: l => 300 + l * 350,      // xp needed to go from level l to l+1  (level 12 -> 4500)

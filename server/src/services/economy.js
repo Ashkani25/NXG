@@ -11,6 +11,7 @@ const quests = uid => mutate(C.users, uid, u => { ensureQuests(u); return { list
 const claimQuest = (uid, id) => mutate(C.users, uid, u => { ensureQuests(u); const q = u.quests.list.find(x => x.id === clean(id, 8)); if (!q || q.claimed || q.have < q.need) throw bad('Not ready'); q.claimed = true; u.coins += q.coins || 0; u.gems += q.gems || 0; return { coins: q.coins || 0, gems: q.gems || 0 } });
 const buy = (uid, id) => { const [type, key] = clean(id, 40).split(':'); if (type === 'chest') return chest(uid, key);
   return mutate(C.users, uid, u => { let price;
+    if (type === 'team') { if (!L.isVip(key)) throw bad('Item not found', 404); if (!u.owned.teams) u.owned.teams = [L.VIP_FREE]; if (u.owned.teams.includes(key)) throw bad('Already owned'); price = L.vipPrice(key); if (u.gems < price) throw bad('Not enough gems'); u.gems -= price; u.owned.teams.push(key); return { granted: { item: key } } }
     if (type === 'ball') { const i = +key; if (!(i >= 0 && i < L.NB)) throw bad('Item not found', 404); if (u.owned.balls.includes(i)) throw bad('Already owned'); price = L.ballPrice(i); if (u.coins < price) throw bad('Not enough coins'); u.coins -= price; u.owned.balls.push(i) }
     else if (type === 'field') { if (!L.FIELDS.includes(key)) throw bad('Item not found', 404); if (u.owned.fields.includes(key)) throw bad('Already owned'); price = L.fieldPrice(key); if (u.coins < price) throw bad('Not enough coins'); u.coins -= price; u.owned.fields.push(key) }
     else throw bad('Item not found', 404); return { granted: { item: type + ' ' + key } } }) };

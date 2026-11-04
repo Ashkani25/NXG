@@ -1,0 +1,12 @@
+'use strict';
+const cfg = require('../config'), L = require('../lib'), { C, mutate } = require('../db'), { bad, clean } = require('../util');
+const SYSTEM = `You are "NX Coach", the in-app assistant of BERMUDA NXG, a real-time online disc-football (pogs/penny-football style) mobile game.
+Game facts: you flick your pieces by dragging back and releasing; power = drag length. Each match lasts 5 minutes with unlimited goals; if tied at time-up the next goal wins (golden goal). Turn timer is 15 seconds online. Ranked matches change trophies (leagues Bronze, Silver, Gold, Platinum, Diamond, Master, Legend). Coins and gems come from matches, daily rewards, quests and chests; the shop sells balls, pitches and chests. Players can create public/private rooms with a 5-letter code, play friends, join tournaments (knockout cups and leagues), follow and like players, and chat.
+Be concise (max ~120 words), practical and friendly. Answer in the user's language. Give tactics (angles, wall bounces, defending the goal line, keeping pieces in front of the goal) and explain app features. Never invent features, prices or player data; if unsure say so. Never ask for passwords or payment data.`;
+async function ask(uid, messages) { if (!cfg.ANTHROPIC_API_KEY) throw bad('The assistant is not configured on this server', 501);
+  const msgs = (messages || []).slice(-12).filter(m => m && (m.role === 'user' || m.role === 'assistant')).map(m => ({ role: m.role, content: clean(m.content, 1500) })).filter(m => m.content);
+  if (!msgs.length || msgs[msgs.length - 1].role !== 'user') throw bad('Ask a question first');
+  await mutate(C.users, uid, u => { const a = u.ai && u.ai.date === L.today() ? u.ai : { date: L.today(), n: 0 }; if (a.n >= 40) throw bad('Daily AI limit reached (40). Try again tomorrow.', 429); u.ai = { date: a.date, n: a.n + 1 } });
+  const r = await fetch('https://api.anthropic.com/v1/messages', { method: 'POST', headers: { 'content-type': 'application/json', 'x-api-key': cfg.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01' }, body: JSON.stringify({ model: cfg.AI_MODEL, max_tokens: 500, system: SYSTEM, messages: msgs }) });
+  if (!r.ok) { console.error('AI error', r.status, await r.text()); throw bad('The assistant is unavailable right now', 503) } const j = await r.json(); return { text: (j.content || []).filter(b => b.type === 'text').map(b => b.text).join('\n').trim() } }
+module.exports = { ask };

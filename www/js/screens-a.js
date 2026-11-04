@@ -4,17 +4,24 @@
 
   /* ---------------- splash ---------------- */
   S.splash = () => {
-    let fin; NX.introDone = new Promise(r => fin = r); let done = false; const finish = () => { if (!done) { done = true; clearInterval(wd); fin() } };
-    const v = el('video', { class: 'intro4', playsinline: '', preload: 'auto' }), t0 = Date.now();
-    v.setAttribute('webkit-playsinline', ''); v.setAttribute('playsinline', ''); v.playsInline = true;
-    for (const [f, t] of [['intro.mp4', 'video/mp4'], ['intro.webm', 'video/webm']]) v.append(el('source', { src: 'assets/' + f + '?v=3', type: t }));
-    v.onended = finish; let started = false, last = -1, stall = 0;
-    v.addEventListener('playing', () => { started = true });
-    // watchdog: never block the game if the video cannot start or freezes
-    const wd = setInterval(() => { const el_ = Date.now() - t0; if (!started && el_ > 4500) return finish(); if (started) { if (v.currentTime === last && !v.paused) stall++; else stall = 0; last = v.currentTime; if (stall > 12) finish() } }, 250);
-    const play = async () => { try { v.muted = false; await v.play() } catch (e) { try { v.muted = true; await v.play() } catch (e2) { } } };
-    v.load(); setTimeout(play, 60); v.addEventListener('canplay', () => { if (v.paused) play() }, { once: true }); setTimeout(finish, 9000);
-    return el('div', { class: 'scr splash4', onclick: () => { if (Date.now() - t0 > 1200) finish() } }, v);
+    let fin; NX.introDone = new Promise(r => fin = r); let done = false, mode = 'video'; const t0 = Date.now(); let wd = 0;
+    const au = new Audio('assets/intro.mp3?v=4'); au.preload = 'auto';
+    const finish = () => { if (!done) { done = true; clearInterval(wd); try { au.pause() } catch (e) { } fin() } };
+    const v = el('video', { class: 'intro4', playsinline: '', preload: 'auto' }), cv = el('canvas', { class: 'intro4', width: 540, height: 540, style: { display: 'none' } });
+    v.setAttribute('webkit-playsinline', ''); v.playsInline = true;
+    for (const [f, ty] of [['intro.mp4', 'video/mp4'], ['intro.webm', 'video/webm']]) v.append(el('source', { src: 'assets/' + f + '?v=4', type: ty }));
+    let started = false, last = -1, stall = 0; v.onended = finish; v.addEventListener('playing', () => { started = true });
+    /* fallback: the same intro as a frame sequence on a canvas (works on any WebView, no codec / autoplay dependence) */
+    const startFrames = () => { if (mode !== 'video' || done) return; mode = 'frames'; try { v.pause() } catch (e) { } v.style.display = 'none'; cv.style.display = 'block';
+      const N = 101, imgs = [], x = cv.getContext('2d'); for (let i = 1; i <= N; i++) { const im = new Image(); im.src = 'assets/introf/f' + String(i).padStart(3, '0') + '.webp?v=4'; imgs.push(im) }
+      const tf = performance.now(); let lastOk = null;
+      const unlock = () => { au.play().catch(() => { }) }; au.currentTime = 0; au.play().catch(() => document.addEventListener('pointerdown', unlock, { once: true }));
+      const loop = () => { if (done) return; const i = Math.floor((performance.now() - tf) / 50); if (i >= N) return finish(); const im = imgs[i]; if (im && im.complete && im.naturalWidth) lastOk = im; if (lastOk) { x.drawImage(lastOk, 0, 0, 540, 540) } requestAnimationFrame(loop) }; loop() };
+    v.addEventListener('error', () => setTimeout(startFrames, 50), true);
+    wd = setInterval(() => { const e = Date.now() - t0; if (mode !== 'video') return; if (!started && e > 1800) return startFrames(); if (started) { if (v.currentTime === last && !v.paused) stall++; else stall = 0; last = v.currentTime; if (stall > 8) startFrames() } }, 250);
+    const play = async () => { try { v.muted = false; await v.play() } catch (e) { try { v.muted = true; await v.play() } catch (e2) { startFrames() } } };
+    v.load(); setTimeout(play, 60); setTimeout(finish, 9000);
+    return el('div', { class: 'scr splash4', onclick: () => { if (Date.now() - t0 > 1500) finish() } }, v, cv);
   };
 
 

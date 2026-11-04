@@ -7,6 +7,11 @@ const NB = 36;
 const FIELDS = ['forest','ice','ocean','street','streetarena','lava','stadium','checker','futsal','arena','arena2','desert','grove','pool','neon','royal','mahogany','leather','aqua','asphalt','court','cyberbox','realmadrid','psg','acmilan','barcelona','persepolis','esteghlal','mancity'];
 const ballPrice = i => FREE_BALLS.includes(i) ? 0 : i >= 13 ? 800 + (i - 13) * 100 : 300 + (i % 5) * 300;
 const fieldPrice = id => FREE_FIELDS.includes(id) ? 0 : 500 + (id.length % 4) * 400;
+const VIP_NAMES = ['Nova Blue','Aurum Crest','Emerald Core','Specter Wings','Infernal Edge','Timber Blaze','Chrome Vortex','Crimson Pulse','Thunder Gold','Jade Marble','Kakero Noir','Kakero Frost'];
+const VIP_PRICES = [260,275,290,255,300,265,280,270,0,295,285,250];
+const VIP_FREE = 'vip8';
+const isVip = id => typeof id === 'string' && id.slice(0,3) === 'vip';
+const vipPrice = id => VIP_PRICES[+String(id).slice(3)] || 0;
 const CHESTS = { wood: { price: 400, cur: 'coins' }, gold: { price: 60, cur: 'gems' }, magic: { price: 140, cur: 'gems' } };
 const DAILY = [{ coins: 100 }, { coins: 150 }, { coins: 200 }, { gems: 5 }, { coins: 300 }, { coins: 400 }, { coins: 600, gems: 10, chest: 'wood' }];
 const rnd = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
@@ -41,4 +46,4 @@ function currentRound(rounds) { for (let r = 0; r < rounds.length; r++) if (roun
 function buildLeague(ids) { const p = ids.slice(); if (p.length % 2) p.push(null); const n = p.length, rounds = []; for (let r = 0; r < n - 1; r++) { const ms = []; for (let i = 0; i < n / 2; i++) { const a = p[i], b = p[n - 1 - i]; if (a && b) ms.push({ id: 'r' + r + 'm' + i, a, b, winner: null, score: null, matchId: null, readyA: false, readyB: false, done: false }) } rounds.push({ name: 'Matchday ' + (r + 1), matches: ms }); p.splice(1, 0, p.pop()) }
   const table = {}; ids.forEach(i => table[i] = { p: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, pts: 0 }); return { rounds, table } }
 function leagueApply(table, a, b, ga, gb) { const A = table[a], B = table[b]; A.p++; B.p++; A.gf += ga; A.ga += gb; B.gf += gb; B.ga += ga; if (ga > gb) { A.w++; B.l++; A.pts += 3 } else if (gb > ga) { B.w++; A.l++; B.pts += 3 } else { A.d++; B.d++; A.pts++; B.pts++ } }
-module.exports = { LEAGUES, XP_NEED, FREE_BALLS, FREE_FIELDS, NB, FIELDS, ballPrice, fieldPrice, CHESTS, DAILY, rnd, today, newQuests, addXp, trophyDelta, matchRewards, chestRewards, buildCup, advanceCup, currentRound, buildLeague, leagueApply, roundName };
+module.exports = { VIP_NAMES, VIP_PRICES, VIP_FREE, isVip, vipPrice, LEAGUES, XP_NEED, FREE_BALLS, FREE_FIELDS, NB, FIELDS, ballPrice, fieldPrice, CHESTS, DAILY, rnd, today, newQuests, addXp, trophyDelta, matchRewards, chestRewards, buildCup, advanceCup, currentRound, buildLeague, leagueApply, roundName };

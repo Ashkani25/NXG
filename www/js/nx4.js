@@ -43,10 +43,12 @@
     const build = () => {
       tabs.replaceChildren(...cats.map((c, i) => el('button', { class: cat === i ? 'on' : '', onclick: () => { cat = i; build() } }, c[1])));
       const items = G.TEAMS.filter(t => t.cat === cats[cat][0]).slice(0, opt.max || 999), idx = Math.max(0, items.findIndex(t => t.id === get()));
-      deck = NX.deck({ items, index: idx, cls: 'frm', card: (t, i) => { const on = get() === t.id; return [
-        el('div', { class: 'fhole' }, el('img', { src: t.src, alt: '', draggable: 'false' })), el('img', { class: 'fimg', src: A('frame'), alt: '', draggable: 'false' }),
-        el('b', { class: 'fname' }, t.name), el('div', { class: 'fsl' }, el('span', null, '#' + (i + 1)), el('span', null, cats[cat][1]), el('span', { class: on ? 'on' : '' }, on ? '✓ ' + 'USED' : 'TAP'))] },
-        onTap: async t => { await set(t); deck.refresh() } });
+      const owns = t => t.cat !== 'vip' || ((NX.P.owned && NX.P.owned.teams) || [G.VIP_FREE]).includes(t.id);
+      deck = NX.deck({ items, index: idx, cls: 'frm', card: (t, i) => { const on = get() === t.id, lk = !owns(t); return [
+        el('div', { class: 'fhole' }, el('img', { src: t.src, alt: '', draggable: 'false' })), el('img', { class: 'fimg', src: A(t.cat === 'vip' ? 'frame_vip' : 'frame'), alt: '', draggable: 'false' }),
+        el('b', { class: 'fname' }, t.name), el('div', { class: 'fsl' }, el('span', null, '#' + (i + 1)), el('span', null, cats[cat][1]),
+          lk ? el('span', { class: 'lkp' }, '🔒 ' + fmt(G.vipPrice(t.id))) : el('span', { class: on ? 'on' : '' }, on ? '✓ ' + 'USED' : 'TAP'))] },
+        onTap: async t => { if (!owns(t)) { const price = G.vipPrice(t.id); NX.confirm('Unlock ' + t.name, 'VIP disc — buy for ' + fmt(price) + ' gems?', 'Buy', async () => { try { await B.shop.buy('team:' + t.id); NX.P = await B.profile.get(); sfx('ui'); NX.toast('Unlocked ' + t.name, 'ok'); await set(t); deck.refresh() } catch (e) { NX.toast(e.message || 'Purchase failed') } }); return } await set(t); deck.refresh() } });
       wrap.replaceChildren(deck.el); };
     build(); return [tabs, el('div', { style: { height: '8px' } }), wrap, el('p', { class: 'dkh' }, 'SWIPE LEFT / RIGHT')];
   };

@@ -1,0 +1,24 @@
+{
+  "name": "bermuda-nxg",
+  "version": "1.0.0",
+  "private": true,
+  "description": "BERMUDA NXG - online disc football (Capacitor Android + Colyseus)",
+  "scripts": {
+    "vendor:colyseus": "node scripts/vendor-colyseus.js",
+    "prebuild": "npm run vendor:colyseus",
+    "android:add": "cap add android && bash scripts/patch-android.sh",
+    "android:sync": "npm run vendor:colyseus && cap sync android",
+    "android:open": "cap open android",
+    "android:build": "npm run android:sync && cd android && ./gradlew assembleRelease",
+    "android:bundle": "npm run android:sync && cd android && ./gradlew bundleRelease",
+    "serve": "npx serve www",
+    "test:server": "cd server && npm test"
+  },
+  "dependencies": {
+    "@capgo/capacitor-social-login": "^7.0.0",
+    "@capacitor/android": "^7.4.3",
+    "@capacitor/core": "^7.4.3",
+    "colyseus.js": "^0.16.0"
+  },
+  "devDependencies": { "@capacitor/cli": "^7.4.3" }
+}
