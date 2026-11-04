@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#05050a">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>BERMUDA NXG</title>
+  <!-- Game assets and original game engine -->
+  <link rel="stylesheet" href="/assets/css/app.css">
+  <link rel="stylesheet" href="/assets/css/nx3.css">
+  <link rel="stylesheet" href="/assets/css/nx4.css">
+  <script type="module" crossorigin src="/assets/index-mYm3el1W.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/index-DqRE_hjI.css">
+</head>
+<body data-theme="gold">
+  <!-- Game Canvas Layer (managed by original game.js) -->
+  <canvas id="bgc"></canvas>
+  <canvas id="game"></canvas>
+  <div id="vig"></div>
+  
+  <!-- HUD Layer (managed by original game.js) -->
+  <div id="hud">
+    <div class="sb">
+      <div class="team" id="t0"><img id="i0" alt=""><span id="n0"></span><b id="s1">0</b></div>
+      <div id="mclk"></div>
+      <div id="tmr"><span>15</span></div>
+      <div class="team r" id="t1"><img id="i1" alt=""><span id="n1"></span><b id="s2">0</b></div>
+    </div>
+    <div id="bubbles"></div>
+    <div class="emo" id="emo"></div>
+    <div class="hbot" id="hbot"></div>
+  </div>
+  
+  <div class="toast" id="toast"></div>
+  <div id="goalfx"><img src="/assets/nx3/goal_txt.webp" alt="GOAL"><small></small></div>
+  
+  <!-- Vue App Layer (UI only) -->
+  <div id="app"></div>
+  
+  <div id="modals"></div>
+  <div id="toasts"></div>
+  
+  <!-- Load original game engine first, then Vue app -->
+  <script src="/assets/game-config.js"></script>
+</body>
+</html>

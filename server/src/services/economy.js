@@ -1,0 +1,19 @@
+'use strict';
+const L = require('../lib'), { C, mutate } = require('../db'), { bad, clean } = require('../util'), U = require('./users');
+const ensureQuests = u => { if (!u.quests || u.quests.date !== L.today()) u.quests = L.newQuests() };
+function chestApply(rewards, owned) { const o = { balls: owned.balls.slice(), fields: owned.fields.slice() }; let coins = 0, gems = 0;
+  for (const r of rewards) { if (r.type === 'coins') coins += r.amount; if (r.type === 'gems') gems += r.amount; if (r.type === 'ball' && !o.balls.includes(r.key)) o.balls.push(r.key); if (r.type === 'field' && !o.fields.includes(r.key)) o.fields.push(r.key) } return { coins, gems, owned: o } }
+const dailyStatus = u => { const d = u.daily || { day: 0, last: '' }, t = L.today(), claimed = d.last === t, y = new Date(Date.now() - 864e5).toISOString().slice(0, 10); let day = d.day; if (!claimed && d.last !== y && d.last) day = 0; return { day, claimedToday: claimed, nextIndex: claimed ? day - 1 : day % 7, rewards: L.DAILY } };
+const claimDaily = uid => mutate(C.users, uid, u => { const d = u.daily || { day: 0, last: '' }, t = L.today(), y = new Date(Date.now() - 864e5).toISOString().slice(0, 10); if (d.last === t) throw bad('Already claimed today'); let day = d.day; if (d.last !== y && d.last) day = 0;
+  const r = L.DAILY[day % 7], got = { coins: r.coins || 0, gems: r.gems || 0 }; u.coins += got.coins; u.gems += got.gems; u.daily = { day: day + 1, last: t };
+  if (r.chest) { const rw = L.chestRewards(r.chest, u.owned), ca = chestApply(rw, u.owned); u.coins += ca.coins; u.gems += ca.gems; u.owned = ca.owned; got.chest = rw } return { reward: got } });
+const quests = uid => mutate(C.users, uid, u => { ensureQuests(u); return { list: u.quests.list } });
+const claimQuest = (uid, id) => mutate(C.users, uid, u => { ensureQuests(u); const q = u.quests.list.find(x => x.id === clean(id, 8)); if (!q || q.claimed || q.have < q.need) throw bad('Not ready'); q.claimed = true; u.coins += q.coins || 0; u.gems += q.gems || 0; return { coins: q.coins || 0, gems: q.gems || 0 } });
+const buy = (uid, id) => { const [type, key] = clean(id, 40).split(':'); if (type === 'chest') return chest(uid, key);
+  return mutate(C.users, uid, u => { let price;
+    if (type === 'ball') { const i = +key; if (!(i >= 0 && i < L.NB)) throw bad('Item not found', 404); if (u.owned.balls.includes(i)) throw bad('Already owned'); price = L.ballPrice(i); if (u.coins < price) throw bad('Not enough coins'); u.coins -= price; u.owned.balls.push(i) }
+    else if (type === 'field') { if (!L.FIELDS.includes(key)) throw bad('Item not found', 404); if (u.owned.fields.includes(key)) throw bad('Already owned'); price = L.fieldPrice(key); if (u.coins < price) throw bad('Not enough coins'); u.coins -= price; u.owned.fields.push(key) }
+    else throw bad('Item not found', 404); return { granted: { item: type + ' ' + key } } }) };
+const equip = (uid, type, key) => mutate(C.users, uid, u => { if (type === 'ball') { if (!u.owned.balls.includes(+key)) throw bad('Locked'); u.equip.ball = +key } else if (type === 'field') { if (!u.owned.fields.includes(key)) throw bad('Locked'); u.equip.field = key } else throw bad('Bad type'); return { ok: true } });
+const chest = (uid, key) => { const c = L.CHESTS[key]; if (!c) throw bad('Unknown chest'); return mutate(C.users, uid, u => { if (u[c.cur] < c.price) throw bad('Not enough ' + c.cur); const rw = L.chestRewards(key, u.owned), ca = chestApply(rw, u.owned); u[c.cur] -= c.price; u.coins += ca.coins; u.gems += ca.gems; u.owned = ca.owned; return { rewards: rw } }) };
+module.exports = { ensureQuests, dailyStatus, claimDaily, quests, claimQuest, buy, equip, chest };
