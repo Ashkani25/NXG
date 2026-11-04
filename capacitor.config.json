@@ -1,7 +1,7 @@
 {
   "appId": "com.bermuda.nxg",
   "appName": "BERMUDA NXG",
-  "webDir": "dist",
+  "webDir": "www",
   "server": {
     "androidScheme": "https"
   },
