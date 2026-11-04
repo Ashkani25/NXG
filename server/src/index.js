@@ -6,7 +6,7 @@ const { Server } = require('@colyseus/core');
 const { WebSocketTransport } = require('@colyseus/ws-transport');
 
 const cfg = require('./config');
-const db = require('./db');
+const { supabase, initializeDatabase } = require('./supabase');
 const api = require('./api');
 const T = require('./services/tournaments');
 
@@ -19,8 +19,8 @@ const ChatRoom = require('./rooms/ChatRoom');
 const UserRoom = require('./rooms/UserRoom');
 
 async function main() {
-  // Connect to database
-  await db.connect();
+  // Initialize Supabase database schema
+  await initializeDatabase();
   
   const app = express();
   
@@ -85,20 +85,7 @@ async function main() {
   await gameServer.listen(cfg.PORT);
   console.log('[BERMUDA NXG] Server started on port ' + cfg.PORT);
   console.log('[BERMUDA NXG] Environment: ' + (cfg.PROD ? 'PRODUCTION' : 'DEVELOPMENT'));
-  
-  // Scheduled tasks
-  const every = (name, ms, fn) => setInterval(() => {
-    db.withLock(name, ms - 2000, fn).catch(e => console.error(name, e));
-  }, ms).unref();
-  
-  // Tournament tick (every minute)
-  every('tour-tick', 60000, () => T.tick());
-  
-  // Tournament seeding (every hour)
-  every('tour-seed', 3600000, () => T.seedOfficial());
-  
-  // Initialize official tournaments
-  T.seedOfficial().catch(console.error);
+  console.log('[BERMUDA NXG] Database: Supabase (' + cfg.SUPABASE_URL + ')');
   
   // Graceful shutdown
   const stop = async () => {
@@ -106,7 +93,6 @@ async function main() {
     try {
       await gameServer.gracefullyShutdown(false);
     } catch (e) {}
-    await db.close();
     process.exit(0);
   };
   
