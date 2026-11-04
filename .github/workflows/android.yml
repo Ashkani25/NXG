@@ -31,14 +31,13 @@ jobs:
         mkdir -p cmdline-tools/latest
         mv cmdline-tools/* cmdline-tools/latest/ 2>/dev/null || true
         rm cmdline-tools.zip
-        echo "sdk.dir=$HOME/android-sdk" > $GITHUB_WORKSPACE/android/local.properties
     
     - name: Install Android SDK components
       run: |
         export ANDROID_HOME=$HOME/android-sdk
         export PATH=$PATH:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools
         yes | sdkmanager --licenses 2>/dev/null || true
-        sdkmanager "platforms;android-35" "build-tools;35.0.0" "platform-tools"
+        sdkmanager "platforms;android-35" "build-tools;34.0.0" "build-tools;35.0.0" "platform-tools"
     
     - name: Create local.properties
       run: echo "sdk.dir=$HOME/android-sdk" > android/local.properties
@@ -54,7 +53,6 @@ jobs:
         cd android
         chmod +x gradlew
         ./gradlew assembleDebug --no-daemon 2>&1 | tee build.log
-      continue-on-error: true
     
     - name: Upload build log
       if: always()
