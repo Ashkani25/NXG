@@ -1,10 +1,11 @@
 {
-  "name": "bermuda-nxg-server",
-  "version": "1.0.0",
-  "private": true,
-  "description": "BERMUDA NXG game backend: Colyseus (realtime rooms, matchmaking, chat) + Express REST + MongoDB",
+  "name": "bermudanxg-server",
+  "version": "2.0.0",
+  "description": "BERMUDA NXG - Multiplayer Game Server (Colyseus + Express)",
   "main": "src/index.js",
-  "engines": { "node": ">=20" },
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "start": "node src/index.js",
     "dev": "node --watch src/index.js",
@@ -14,11 +15,15 @@
   "dependencies": {
     "@colyseus/core": "^0.16.0",
     "@colyseus/ws-transport": "^0.16.0",
+    "@supabase/supabase-js": "^2.47.0",
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
     "express": "^4.19.2",
-    "google-auth-library": "^9.14.0",
     "jsonwebtoken": "^9.0.2",
-    "mongodb": "^6.8.0"
+    "uuid": "^9.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0"
   }
 }
