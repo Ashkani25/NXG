@@ -1,283 +1,195 @@
 'use strict';
 
-/**
- * Supabase PostgreSQL Client for BERMUDA NXG
- * 
- * Database schema for multiplayer football game
- */
+const { Client } = require('pg');
 
-const { createClient } = require('@supabase/supabase-js');
+const DATABASE_URL = 'postgresql://postgres.cqbtbgdkgmcbhaoktcwy:owfCZONVNmm8elTF@db.cqbtbgdkgmcbhaoktcwy.supabase.co:5432/postgres';
 
-const supabaseUrl = 'https://cqbtbgdkgmcbhaoktcwy.supabase.co';
-const supabaseServiceKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNxYnRiZ2RrZ21jYmhhb2t0Y3d5Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc5Mzc5ODY5OCwiZXhwIjoyMTA5Mzc0Njk4fQ.MtGfRTRX7M5zH3J_P7TROvBcPvUyQXyFwQ_33CDoTuQ';
-
-const supabase = createClient(supabaseUrl, supabaseServiceKey, {
-  auth: {
-    autoRefreshToken: false,
-    persistSession: false
-  },
-  realtime: {
-    enabled: false
-  }
+const client = new Client({
+  connectionString: DATABASE_URL,
+  ssl: { rejectUnauthorized: false }
 });
 
-// Database schema initialized manually via Supabase CLI
-// No initialization needed - tables already created
+async function connect() {
+  if (!client._connected) {
+    await client.connect();
+    client._connected = true;
+    console.log('[DB] Connected to Supabase PostgreSQL!');
+  }
+}
+
+// Initialize connection
+connect().catch(console.error);
 
 // Helper functions
+async function query(sql, params = []) {
+  await connect();
+  const res = await client.query(sql, params);
+  return res;
+}
+
 async function createUser(userData) {
   const shortId = 'NX-' + Math.random().toString(36).slice(-6).toUpperCase();
-  
-  const { data, error } = await supabase
-    .from('users')
-    .insert({
-      email: userData.email || null,
-      username: userData.username,
-      short_id: shortId,
-      avatar: userData.avatar || 'club0',
-      team: userData.team || 'club0',
-      stats: { played: 0, wins: 0, losses: 0, goals: 0, conceded: 0, streak: 0, best: 0 },
-      equip: { ball: 4, field: 'stadium' },
-      owned: { balls: [0, 4, 5], fields: ['stadium'], teams: [] },
-      quests: { date: new Date().toISOString().slice(0, 10), list: [] }
-    })
-    .select()
-    .single();
-  
-  if (error) throw error;
-  return data;
+  const result = await query(
+    `INSERT INTO users (username, short_id, avatar, team, stats, equip, owned, quests) 
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8) 
+     RETURNING *`,
+    [
+      userData.username || 'Guest',
+      shortId,
+      userData.avatar || 'club0',
+      userData.team || 'club0',
+      JSON.stringify({ played: 0, wins: 0, losses: 0, goals: 0, conceded: 0, streak: 0, best: 0 }),
+      JSON.stringify({ ball: 4, field: 'stadium' }),
+      JSON.stringify({ balls: [0, 4, 5], fields: ['stadium'], teams: [] }),
+      JSON.stringify({ date: new Date().toISOString().slice(0, 10), list: [] })
+    ]
+  );
+  return result.rows[0];
 }
 
 async function getUserById(id) {
-  const { data, error } = await supabase
-    .from('users')
-    .select('*')
-    .eq('id', id)
-    .single();
-  
-  if (error) return null;
-  return data;
+  const result = await query('SELECT * FROM users WHERE id = $1', [id]);
+  return result.rows[0] || null;
 }
 
 async function getUserByEmail(email) {
-  const { data, error } = await supabase
-    .from('users')
-    .select('*')
-    .eq('email', email)
-    .single();
-  
-  if (error) return null;
-  return data;
+  const result = await query('SELECT * FROM users WHERE email = $1', [email]);
+  return result.rows[0] || null;
 }
 
 async function updateUser(id, updates) {
-  const { data, error } = await supabase
-    .from('users')
-    .update({ ...updates, updated_at: new Date().toISOString() })
-    .eq('id', id)
-    .select()
-    .single();
-  
-  if (error) throw error;
-  return data;
+  const keys = Object.keys(updates);
+  const values = Object.values(updates);
+  const setClause = keys.map((k, i) => `${k} = $${i + 2}`).join(', ');
+  const result = await query(
+    `UPDATE users SET ${setClause}, updated_at = NOW() WHERE id = $1 RETURNING *`,
+    [id, ...values]
+  );
+  return result.rows[0];
 }
 
-// Room functions
 async function createRoom(roomData) {
-  const { data, error } = await supabase
-    .from('rooms')
-    .insert(roomData)
-    .select()
-    .single();
-  
-  if (error) throw error;
-  return data;
+  const result = await query(
+    `INSERT INTO rooms (code, name, host_id, host_pub, capacity, team_size, status, is_public, settings)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`,
+    [
+      roomData.code,
+      roomData.name,
+      roomData.host_id,
+      roomData.host_pub ? JSON.stringify(roomData.host_pub) : null,
+      roomData.capacity || 2,
+      roomData.team_size || 1,
+      'waiting',
+      roomData.is_public || false,
+      JSON.stringify(roomData.settings || { field: 'stadium', ball: 0, matchTime: 300 })
+    ]
+  );
+  return result.rows[0];
 }
 
 async function getRoomByCode(code) {
-  const { data, error } = await supabase
-    .from('rooms')
-    .select('*')
-    .eq('code', code)
-    .single();
-  
-  if (error) return null;
-  return data;
+  const result = await query('SELECT * FROM rooms WHERE code = $1', [code]);
+  return result.rows[0] || null;
 }
 
 async function getPublicRooms() {
-  const { data, error } = await supabase
-    .from('rooms')
-    .select('*')
-    .eq('is_public', true)
-    .eq('status', 'waiting')
-    .order('created_at', { ascending: false })
-    .limit(30);
-  
-  if (error) return [];
-  return data || [];
+  const result = await query(
+    "SELECT * FROM rooms WHERE is_public = true AND status = 'waiting' ORDER BY created_at DESC LIMIT 30"
+  );
+  return result.rows;
 }
 
 async function updateRoom(id, updates) {
-  const { data, error } = await supabase
-    .from('rooms')
-    .update(updates)
-    .eq('id', id)
-    .select()
-    .single();
-  
-  if (error) throw error;
-  return data;
+  const keys = Object.keys(updates);
+  const values = Object.values(updates);
+  const setClause = keys.map((k, i) => `${k} = $${i + 2}`).join(', ');
+  const result = await query(
+    `UPDATE rooms SET ${setClause} WHERE id = $1 RETURNING *`,
+    [id, ...values]
+  );
+  return result.rows[0];
 }
 
-// Match functions
 async function createMatch(matchData) {
-  const { data, error } = await supabase
-    .from('matches')
-    .insert(matchData)
-    .select()
-    .single();
-  
-  if (error) throw error;
-  return data;
+  const result = await query(
+    `INSERT INTO matches (room_id, teams, team_size, mode, settings, ranked, status, score)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
+    [
+      matchData.room_id || null,
+      JSON.stringify(matchData.teams || [[], []]),
+      matchData.team_size || 1,
+      matchData.mode || '1v1',
+      JSON.stringify(matchData.settings || { field: 'stadium', ball: 0, matchTime: 300 }),
+      matchData.ranked || false,
+      'playing',
+      JSON.stringify([0, 0])
+    ]
+  );
+  return result.rows[0];
 }
 
 async function getMatchById(id) {
-  const { data, error } = await supabase
-    .from('matches')
-    .select('*')
-    .eq('id', id)
-    .single();
-  
-  if (error) return null;
-  return data;
+  const result = await query('SELECT * FROM matches WHERE id = $1', [id]);
+  return result.rows[0] || null;
 }
 
 async function updateMatch(id, updates) {
-  const { data, error } = await supabase
-    .from('matches')
-    .update(updates)
-    .eq('id', id)
-    .select()
-    .single();
-  
-  if (error) throw error;
-  return data;
+  const keys = Object.keys(updates);
+  const values = Object.values(updates);
+  const setClause = keys.map((k, i) => `${k} = $${i + 2}`).join(', ');
+  const result = await query(
+    `UPDATE matches SET ${setClause} WHERE id = $1 RETURNING *`,
+    [id, ...values]
+  );
+  return result.rows[0];
 }
 
-async function updateMatchReport(matchId, userId, report) {
-  const { data: existing } = await supabase
-    .from('match_reports')
-    .select('id')
-    .eq('match_id', matchId)
-    .eq('user_id', userId)
-    .single();
-  
-  if (existing) {
-    // Update existing report
-    const { data, error } = await supabase
-      .from('match_reports')
-      .update(report)
-      .eq('id', existing.id)
-      .select()
-      .single();
-    
-    if (error) throw error;
-    return data;
-  } else {
-    // Create new report
-    const { data, error } = await supabase
-      .from('match_reports')
-      .insert({ match_id: matchId, user_id: userId, ...report })
-      .select()
-      .single();
-    
-    if (error) throw error;
-    return data;
-  }
-}
-
-// Friends functions
 async function addFriend(userId, friendId) {
-  const { data, error } = await supabase
-    .from('friends')
-    .insert({ user_id: userId, friend_id: friendId, status: 'pending' })
-    .select()
-    .single();
-  
-  if (error) throw error;
-  return data;
+  const result = await query(
+    `INSERT INTO friends (user_id, friend_id, status) VALUES ($1, $2, 'pending')
+     ON CONFLICT (user_id, friend_id) DO NOTHING RETURNING *`,
+    [userId, friendId]
+  );
+  return result.rows[0];
 }
 
 async function getFriends(userId) {
-  const { data, error } = await supabase
-    .from('friends')
-    .select('*, friend:users!friends_friend_id_fkey(*)')
-    .or(`user_id.eq.${userId},friend_id.eq.${userId}`)
-    .eq('status', 'accepted');
-  
-  if (error) return [];
-  return data || [];
+  const result = await query(
+    `SELECT f.*, u.username, u.avatar, u.trophies, u.level
+     FROM friends f 
+     JOIN users u ON u.id = f.friend_id 
+     WHERE (f.user_id = $1 OR f.friend_id = $1) AND f.status = 'accepted'`,
+    [userId]
+  );
+  return result.rows;
 }
 
-// Notification functions
 async function createNotification(notifData) {
-  const { data, error } = await supabase
-    .from('notifications')
-    .insert(notifData)
-    .select()
-    .single();
-  
-  if (error) throw error;
-  return data;
+  const result = await query(
+    `INSERT INTO notifications (user_id, title, body, kind, data) VALUES ($1, $2, $3, $4, $5) RETURNING *`,
+    [
+      notifData.user_id,
+      notifData.title,
+      notifData.body || '',
+      notifData.kind || 'info',
+      JSON.stringify(notifData.data || {})
+    ]
+  );
+  return result.rows[0];
 }
 
 async function getNotifications(userId) {
-  const { data, error } = await supabase
-    .from('notifications')
-    .select('*')
-    .eq('user_id', userId)
-    .order('created_at', { ascending: false })
-    .limit(50);
-  
-  if (error) return [];
-  return data || [];
-}
-
-// Session functions
-async function createSession(userId) {
-  const token = require('crypto').randomBytes(32).toString('hex');
-  const expiresAt = new Date(Date.now() + 60 * 24 * 60 * 60 * 1000); // 60 days
-  
-  const { data, error } = await supabase
-    .from('sessions')
-    .insert({
-      user_id: userId,
-      token,
-      expires_at: expiresAt.toISOString()
-    })
-    .select()
-    .single();
-  
-  if (error) throw error;
-  return { ...data, user_id: userId };
-}
-
-async function verifySession(token) {
-  const { data, error } = await supabase
-    .from('sessions')
-    .select('*, user:users(*)')
-    .eq('token', token)
-    .gt('expires_at', new Date().toISOString())
-    .single();
-  
-  if (error || !data) return null;
-  return data;
+  const result = await query(
+    'SELECT * FROM notifications WHERE user_id = $1 ORDER BY created_at DESC LIMIT 50',
+    [userId]
+  );
+  return result.rows;
 }
 
 module.exports = {
-  supabase,
-  initializeDatabase,
+  client,
+  connect,
+  query,
   createUser,
   getUserById,
   getUserByEmail,
@@ -289,11 +201,8 @@ module.exports = {
   createMatch,
   getMatchById,
   updateMatch,
-  updateMatchReport,
   addFriend,
   getFriends,
   createNotification,
-  getNotifications,
-  createSession,
-  verifySession
+  getNotifications
 };
