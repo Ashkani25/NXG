@@ -2,7 +2,8 @@
 
 const { Client } = require('pg');
 
-const DATABASE_URL = 'postgresql://postgres.cqbtbgdkgmcbhaoktcwy:owfCZONVNmm8elTF@db.cqbtbgdkgmcbhaoktcwy.supabase.co:5432/postgres';
+// Session Pooler connection (for Railway deployment)
+const DATABASE_URL = 'postgresql://postgres.cqbtbgdkgmcbhaoktcwy:owfCZONVNmm8elTF@aws-0-ap-northeast-1.pooler.supabase.com:5432/postgres?sslmode=require';
 
 const client = new Client({
   connectionString: DATABASE_URL,
