@@ -1,7 +1,7 @@
 // NEXORA NXG - Main Database Export
 'use strict';
 
-// Re-export the new connection module
-const db = require('../database/connection');
+// Re-export the PostgreSQL-based supabase module
+const db = require('./supabase');
 
 module.exports = db;
