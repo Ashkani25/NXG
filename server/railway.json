@@ -5,7 +5,7 @@
     "nixpacksVersion": "latest"
   },
   "deploy": {
-    "command": "npm start",
+    "command": "rm -rf node_modules && npm install && npm start",
     "numReplicas": 1,
     "restartPolicyType": "ON_FAILURE",
     "restartPolicyMaxRetries": 10
