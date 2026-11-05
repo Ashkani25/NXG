@@ -115,4 +115,4 @@ async function main() {
 main().catch(e => {
   console.error('[BERMUDA NXG] Failed to start:', e);
   process.exit(1);
-});
+});# Force Railway redeploy
