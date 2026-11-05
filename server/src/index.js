@@ -1,12 +1,13 @@
 'use strict';
 const http = require('http');
+const path = require('path');
 const express = require('express');
 const cors = require('cors');
 const { Server } = require('@colyseus/core');
 const { WebSocketTransport } = require('@colyseus/ws-transport');
 
 const cfg = require('./config');
-const { supabase, initializeDatabase } = require('./supabase');
+const { supabase } = require('./supabase');
 const api = require('./api');
 const T = require('./services/tournaments');
 
@@ -19,9 +20,6 @@ const ChatRoom = require('./rooms/ChatRoom');
 const UserRoom = require('./rooms/UserRoom');
 
 async function main() {
-  // Initialize Supabase database schema
-  await initializeDatabase();
-  
   const app = express();
   
   // Trust proxy for proper IP detection
@@ -47,11 +45,23 @@ async function main() {
     });
   });
   
+  // Serve static files from parent dist folder (web version)
+  const distPath = path.join(__dirname, '..', '..', 'dist');
+  app.use(express.static(distPath));
+  
   // API routes
   app.use('/', api);
   
   // 404 handler
-  app.use((req, res) => res.status(404).json({ error: 'Not found' }));
+  app.use((req, res) => {
+    // For API routes, return JSON 404
+    if (req.path.startsWith('/')) {
+      res.status(404).json({ error: 'Not found' });
+    } else {
+      // For other routes, serve index.html (SPA support)
+      res.sendFile(path.join(distPath, 'index.html'));
+    }
+  });
   
   // Error handler
   app.use((err, req, res, next) => {
@@ -85,7 +95,7 @@ async function main() {
   await gameServer.listen(cfg.PORT);
   console.log('[BERMUDA NXG] Server started on port ' + cfg.PORT);
   console.log('[BERMUDA NXG] Environment: ' + (cfg.PROD ? 'PRODUCTION' : 'DEVELOPMENT'));
-  console.log('[BERMUDA NXG] Database: Supabase (' + cfg.SUPABASE_URL + ')');
+  console.log('[BERMUDA NXG] Database: Supabase');
   
   // Graceful shutdown
   const stop = async () => {
