@@ -3,8 +3,8 @@
 window.NEXORA_CONFIG = {
   BACKEND: 'colyseus',              // 'colyseus' = real online server (server/) | 'local' = offline practice only
   APP_NAME: 'BERMUDA NXG',
-  API_URL: '',                      // e.g. https://api.yourdomain.com   (Express REST, served by server/)
-  WS_URL: '',                       // e.g. wss://api.yourdomain.com     (Colyseus; empty = derived from API_URL)
+  API_URL: 'https://nxg-production.up.railway.app',   // Express REST + Colyseus
+  WS_URL: '',                                        // auto-derived from API_URL
   MATCH_SECONDS: 300,               // every match = 5 minutes, unlimited goals, golden goal if tied
   APP_VERSION: '1.0.0',
   TURN_SECONDS: 15,                 // online turn timer
@@ -27,12 +27,12 @@ window.NEXORA_CONFIG = {
     gold:  { name: 'Gold Chest',  img: 'chest_gold',  price: 60,   cur: 'gems'  },
     magic: { name: 'Magic Chest', img: 'chest_magic', price: 140,  cur: 'gems'  }
   },
-  COIN_PACKS: [                     // real-money products: wire to Google Play Billing + server verification
-    { id: 'coins_s', name: '2,000 Coins',  coins: 2000,  price: '$0.99', img: 'i_coin' },
-    { id: 'coins_m', name: '6,500 Coins',  coins: 6500,  price: '$2.99', img: 'i_coin' },
-    { id: 'coins_l', name: '15,000 Coins', coins: 15000, price: '$5.99', img: 'i_coin' },
-    { id: 'gems_s',  name: '80 Gems',      gems: 80,      price: '$1.99', img: 'i_gem' },
-    { id: 'gems_m',  name: '250 Gems',     gems: 250,     price: '$4.99', img: 'i_gem' }
+  COIN_PACKS: [                     // real-money products: wire to Google Play Billing + server verification (prices in Iran Toman)
+    { id: 'coins_s', name: '2,000 Coins',  coins: 2000,  price: '۴۲,۰۰۰', cur: 'تومان', img: 'i_coin' },
+    { id: 'coins_m', name: '6,500 Coins',  coins: 6500,  price: '۱۲۶,۰۰۰', cur: 'تومان', img: 'i_coin' },
+    { id: 'coins_l', name: '15,000 Coins', coins: 15000, price: '۲۵۲,۰۰۰', cur: 'تومان', img: 'i_coin' },
+    { id: 'gems_s',  name: '80 Gems',      gems: 80,      price: '۸۴,۰۰۰', cur: 'تومان', img: 'i_gem' },
+    { id: 'gems_m',  name: '250 Gems',     gems: 250,     price: '۲۱۰,۰۰۰', cur: 'تومان', img: 'i_gem' }
   ],
   QUICK_CHAT: ['Good luck!', 'Nice shot!', 'Wow!', 'Oops...', 'Well played', 'Hurry up!', 'GG', 'Rematch?'],
   EMOJIS: ['😀', '😎', '🔥', '👏', '😮', '😂', '😡', '💪'],
