@@ -1,8 +1,0 @@
-{
-  "appId": "com.bermuda.nxg",
-  "appName": "BERMUDA NXG",
-  "webDir": "www",
-  "server": { "androidScheme": "https" },
-  "android": { "allowMixedContent": false },
-  "plugins": { "SplashScreen": { "launchShowDuration": 0 } }
-}

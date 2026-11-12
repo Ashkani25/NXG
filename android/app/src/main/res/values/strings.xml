@@ -1,7 +1,0 @@
-<?xml version='1.0' encoding='utf-8'?>
-<resources>
-    <string name="app_name">BERMUDA NXG</string>
-    <string name="title_activity_main">BERMUDA NXG</string>
-    <string name="package_name">com.bermuda.nxg</string>
-    <string name="custom_url_scheme">com.bermuda.nxg</string>
-</resources>
