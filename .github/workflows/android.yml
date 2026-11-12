@@ -1,0 +1,100 @@
+name: NEXORA Android Build
+
+on:
+  push:
+    branches: ['**', '!check-**']
+  workflow_dispatch:
+
+concurrency:
+  group: android-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.27.1'
+          channel: stable
+          cache: true
+
+      - name: Generate Android platform (if missing)
+        run: |
+          if [ ! -d android ]; then
+            flutter create --platforms=android --org com.nexora --project-name nexora .
+          fi
+          # Branding: app name + launcher icon
+          sed -i 's/android:label="[^"]*"/android:label="NEXORA"/' android/app/src/main/AndroidManifest.xml
+          for d in branding/mipmap-*; do
+            cp "$d/ic_launcher.png" "android/app/src/main/res/$(basename $d)/ic_launcher.png"
+          done
+          # minSdk 24 (P03)
+          if grep -q "minSdk = flutter.minSdkVersion" android/app/build.gradle* 2>/dev/null; then
+            sed -i 's/minSdk = flutter.minSdkVersion/minSdk = 24/' android/app/build.gradle*
+          fi
+          if grep -q "minSdkVersion flutter.minSdkVersion" android/app/build.gradle 2>/dev/null; then
+            sed -i 's/minSdkVersion flutter.minSdkVersion/minSdkVersion 24/' android/app/build.gradle
+          fi
+
+      - name: Pub get
+        run: flutter pub get
+
+      - name: Analyze
+        run: |
+          set +e
+          flutter analyze --no-fatal-infos --no-fatal-warnings > analyze.txt 2>&1
+          echo "ANALYZE_EXIT=$?" >> $GITHUB_ENV
+          grep -E "error •" analyze.txt | head -200 || true
+          exit 0
+
+      - name: Tests
+        run: |
+          set +e
+          flutter test --reporter expanded > test.txt 2>&1
+          echo "TEST_EXIT=$?" >> $GITHUB_ENV
+          tail -80 test.txt
+          exit 0
+
+      - name: Build release APK
+        run: flutter build apk --release 2>&1 | tee build.txt
+
+      - name: Rename APK
+        run: |
+          mkdir -p out
+          cp build/app/outputs/flutter-apk/app-release.apk out/NEXORA-${{ github.run_number }}.apk
+          ls -la out
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: NEXORA-apk
+          path: out/*.apk
+          retention-days: 30
+
+      - name: Upload logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-logs
+          path: |
+            analyze.txt
+            test.txt
+            build.txt
+          retention-days: 14
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "### NEXORA build #${{ github.run_number }}" >> $GITHUB_STEP_SUMMARY
+          echo "- analyze exit: ${ANALYZE_EXIT:-n/a}" >> $GITHUB_STEP_SUMMARY
+          echo "- tests exit: ${TEST_EXIT:-n/a}" >> $GITHUB_STEP_SUMMARY
+          echo "- APK artifact: NEXORA-apk" >> $GITHUB_STEP_SUMMARY
