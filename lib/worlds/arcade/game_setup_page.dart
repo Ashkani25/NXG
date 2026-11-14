@@ -1,0 +1,166 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+
+import '../../core/assets/app_assets.dart';
+import '../../core/profile/profile_service.dart';
+import '../../core/settings/app_settings.dart';
+import '../../core/theme/nx_theme.dart';
+import '../../core/widgets/nx_widgets.dart';
+import '../../games/core/online/games_online_routes.dart' show gmLobbyPath;
+import '../../games/game_registry.dart';
+import 'game_host_page.dart';
+
+/// Games with a real server-backed online mode (gm lobby). Carrom / billiards keep the notice for now.
+const Set<String> kServerOnlineGames = <String>{'backgammon', 'ludo', 'snakes_ladders', 'uno', 'quiz', 'mafia'};
+
+/// Pre-game screen: mode, difficulty, seats, rules.
+class GameSetupPage extends ConsumerStatefulWidget {
+  const GameSetupPage({super.key, required this.gameId});
+  final String gameId;
+
+  @override
+  ConsumerState<GameSetupPage> createState() => _GameSetupPageState();
+}
+
+class _GameSetupPageState extends ConsumerState<GameSetupPage> {
+  GameMode _mode = GameMode.vsBot;
+  BotDifficulty _difficulty = BotDifficulty.normal;
+  int _players = 2;
+  bool _init = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final game = gameById(widget.gameId);
+    if (game == null) {
+      return NxWorldScaffold(
+        title: 'ARCADE',
+        palette: WorldPalette.arcade,
+        body: Center(child: Text(context.tx('این بازی پیدا نشد', 'Game not found'))),
+      );
+    }
+    if (!_init) {
+      _init = true;
+      _players = game.defaultPlayers;
+    }
+    final stats = ref.watch(profileProvider).stats[game.id];
+    return NxWorldScaffold(
+      title: context.tx(game.nameFa, game.nameEn).toUpperCase(),
+      palette: WorldPalette.arcade,
+      body: ListView(
+        padding: const EdgeInsets.all(NxSpace.md),
+        children: [
+          SizedBox(
+            height: 190,
+            child: Hero(
+              tag: 'pedestal_${game.id}',
+              child: Image.asset(AppAssets.pedestal(game.id), cacheWidth: 600, fit: BoxFit.contain),
+            ),
+          ),
+          Center(
+            child: Text(context.tx(game.taglineFa, game.taglineEn),
+                style: TextStyle(color: game.accent, fontWeight: FontWeight.w700)),
+          ),
+          if (stats != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: Center(
+                child: Text(context.tx('برد ${stats.won} از ${stats.played}', '${stats.won} wins of ${stats.played}'),
+                    style: const TextStyle(color: NxColors.textDim, fontSize: 12)),
+              ),
+            ),
+          const SizedBox(height: NxSpace.md),
+          GlassPanel(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(context.tx('حالت بازی', 'Mode'), style: const TextStyle(fontWeight: FontWeight.w800)),
+              const SizedBox(height: 8),
+              SegmentedButton<GameMode>(
+                showSelectedIcon: false,
+                segments: [
+                  ButtonSegment(
+                      value: GameMode.vsBot,
+                      icon: const Icon(Icons.smart_toy_rounded),
+                      label: Text(context.tx('با بات', 'vs Bot'))),
+                  ButtonSegment(
+                      value: GameMode.local,
+                      icon: const Icon(Icons.groups_rounded),
+                      label: Text(game.id == 'mafia'
+                          ? context.tx('حالت راوی', 'Narrator')
+                          : context.tx('دو نفره', 'Local'))),
+                ],
+                selected: {_mode},
+                onSelectionChanged: (v) => setState(() => _mode = v.first),
+              ),
+              if (_mode == GameMode.vsBot) ...[
+                const SizedBox(height: 14),
+                Text(context.tx('سختی', 'Difficulty'), style: const TextStyle(fontWeight: FontWeight.w800)),
+                const SizedBox(height: 8),
+                SegmentedButton<BotDifficulty>(
+                  showSelectedIcon: false,
+                  segments: [
+                    ButtonSegment(value: BotDifficulty.easy, label: Text(context.tx('آسان', 'Easy'))),
+                    ButtonSegment(value: BotDifficulty.normal, label: Text(context.tx('معمولی', 'Normal'))),
+                    ButtonSegment(value: BotDifficulty.hard, label: Text(context.tx('سخت', 'Hard'))),
+                  ],
+                  selected: {_difficulty},
+                  onSelectionChanged: (v) => setState(() => _difficulty = v.first),
+                ),
+              ],
+              if (game.maxPlayers > 2) ...[
+                const SizedBox(height: 14),
+                Row(children: [
+                  Text(context.tx('تعداد بازیکن', 'Players'), style: const TextStyle(fontWeight: FontWeight.w800)),
+                  const Spacer(),
+                  IconButton(
+                    onPressed: _players > game.minPlayers ? () => setState(() => _players--) : null,
+                    icon: const Icon(Icons.remove_circle_outline),
+                  ),
+                  Text('$_players', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900)),
+                  IconButton(
+                    onPressed: _players < game.maxPlayers ? () => setState(() => _players++) : null,
+                    icon: const Icon(Icons.add_circle_outline),
+                  ),
+                ]),
+              ],
+            ]),
+          ),
+          const SizedBox(height: NxSpace.md),
+          GlassPanel(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Row(children: [
+                const Icon(Icons.menu_book_rounded, color: NxColors.turquoise),
+                const SizedBox(width: 8),
+                Text(context.tx('قوانین', 'Rules'), style: const TextStyle(fontWeight: FontWeight.w800)),
+              ]),
+              const SizedBox(height: 8),
+              Text(context.tx(game.rulesFa, game.rulesEn), style: const TextStyle(height: 1.6, fontSize: 13)),
+            ]),
+          ),
+          const SizedBox(height: NxSpace.lg),
+          FilledButton.icon(
+            style: FilledButton.styleFrom(backgroundColor: game.accent, minimumSize: const Size.fromHeight(56)),
+            onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(
+              builder: (_) => GameHostPage(game: game, mode: _mode, difficulty: _difficulty, players: _players),
+            )),
+            icon: const Icon(Icons.play_arrow_rounded),
+            label: Text(context.tx('شروع بازی', 'Start match'), style: const TextStyle(fontSize: 17)),
+          ),
+          const SizedBox(height: NxSpace.md),
+          if (kServerOnlineGames.contains(game.id) || game.id == 'finger_soccer')
+            OutlinedButton.icon(
+              style: OutlinedButton.styleFrom(
+                foregroundColor: game.accent,
+                side: BorderSide(color: game.accent.withValues(alpha: 0.8), width: 1.5),
+                minimumSize: const Size.fromHeight(52),
+              ),
+              onPressed: () => context.push(game.id == 'finger_soccer' ? '/online' : gmLobbyPath(game.id)),
+              icon: const Icon(Icons.public_rounded),
+              label: Text(context.tx('بازی آنلاین', 'Play online'), style: const TextStyle(fontSize: 16)),
+            )
+          else
+            const OnlineOnlyNotice(featureFa: 'بازی آنلاین، اتاق خصوصی و Matchmaking', featureEn: 'Online play, private rooms and matchmaking'),
+        ],
+      ),
+    );
+  }
+}
