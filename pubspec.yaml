@@ -1,0 +1,71 @@
+name: nexora
+description: NEXORA — a connected cosmic digital universe (offline-first full pack).
+publish_to: none
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.5.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  flutter_riverpod: ^2.6.1
+  go_router: ^14.6.2
+  shared_preferences: ^2.3.3
+  flame: ^1.22.0
+  # online layer (live Supabase backend shared with the Expo app) — versions chosen for Flutter 3.27.1 / Dart 3.6
+  supabase_flutter: ">=2.9.0 <2.10.0"
+  livekit_client: ">=2.3.5 <2.4.0"
+  app_links: ^6.3.3
+  permission_handler: ^11.3.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/arcade/pedestals/
+    - assets/avatar/gear/
+    - assets/characters/oracle/
+    - assets/characters/oracle/emotes/
+    - assets/characters/oracle/poses/
+    - assets/games/backgammon/
+    - assets/games/billiards/
+    - assets/games/carrom/
+    - assets/games/disc_football/balls/
+    - assets/games/disc_football/fields/
+    - assets/games/disc_football/fthumb/
+    - assets/games/disc_football/goals/
+    - assets/games/disc_football/teams/
+    - assets/games/disc_football/ui/
+    - assets/games/finger_soccer/
+    - assets/games/finger_soccer/pucks/iso/
+    - assets/games/finger_soccer/pucks/thumb/
+    - assets/games/finger_soccer/pucks/top/
+    - assets/games/finger_soccer/pucks_PLACEHOLDER_LICENSED/iso/
+    - assets/games/finger_soccer/pucks_PLACEHOLDER_LICENSED/thumb/
+    - assets/games/finger_soccer/pucks_PLACEHOLDER_LICENSED/top/
+    - assets/games/shared/discs/
+    - assets/games/kit_v2/backgrounds/
+    - assets/games/kit_v2/boards/
+    - assets/games/kit_v2/buttons/
+    - assets/games/kit_v2/cards/
+    - assets/games/kit_v2/dice/
+    - assets/games/kit_v2/frames/
+    - assets/games/kit_v2/hud/
+    - assets/games/kit_v2/panels/
+    - assets/games/kit_v2/pieces/
+    - assets/progression/achievements/
+    - assets/progression/club_badges/
+    - assets/ui/holo_frames/
+    - assets/ui/kit/
+    - assets/worlds/hub/portals/
+    - assets/worlds/hub/props/
+    - assets/worlds/hub/props/set/
+    - assets/worlds/hub/ship/
+    - assets/worlds/personal_orbit/decor/
