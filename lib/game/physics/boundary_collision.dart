@@ -10,7 +10,7 @@ import 'dart:math' as math;
 import 'body.dart';
 import 'physics_config.dart';
 
-enum EdgeKind { rail, net, post }
+enum EdgeKind { rail, net, post, corner }
 
 class Seg {
   final double ax, ay, ux, uy, len, nx, ny;

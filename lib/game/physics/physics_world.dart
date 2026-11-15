@@ -64,7 +64,12 @@ class PhysicsWorld {
         if (!b.isBall) _ejectRule(b);
       }
     }
-    final n = substepsFor(dt);
+    var n = substepsFor(dt);
+    if (n == 0) {
+      for (final b in bodies) {
+        if (_inBank(b)) n = 1;
+      }
+    }
     if (n == 0) {
       // everything asleep: nothing moves, nothing is corrected (no micro-movement at rest)
       listener?.afterSubstep();
@@ -94,6 +99,7 @@ class PhysicsWorld {
       _x0[i] = b.x;
       _y0[i] = b.y;
       applyFriction(b, h, c);
+      _bank(b, h);
     }
     // ---- continuous collision ----
     var t = 0.0;
@@ -177,8 +183,8 @@ class PhysicsWorld {
           final d = math.sqrt(nx * nx + ny * ny);
           nx /= d;
           ny /= d;
-          final vn = resolveStatic(a, nx, ny, EdgeKind.rail, c, goalHold: goalHold);
-          if (vn > 0) listener?.onStatic(a, EdgeKind.rail, vn);
+          final vn = resolveStatic(a, nx, ny, EdgeKind.corner, c, goalHold: goalHold);
+          if (vn > 0) listener?.onStatic(a, EdgeKind.corner, vn);
       }
     }
     if (t < h) _advance(h - t);
@@ -198,6 +204,30 @@ class PhysicsWorld {
       bd.contain(b);
       if (b.isBall) _roll(b, b.x - _x0[i], b.y - _y0[i], h);
     }
+  }
+
+  /// corner bank: a body touching (within bankZone of) a rounded corner is eased back towards play, so nothing can
+  /// come to rest or stay pinned in a corner. Acts only in the corner pockets.
+  Arc? _bankArc(Body b) {
+    for (final a in bd.arcs) {
+      final qx = b.x - a.cx, qy = b.y - a.cy;
+      if (qx * a.sx <= 0 || qy * a.sy <= 0) continue;
+      final rr = a.rad - b.r, dd = qx * qx + qy * qy;
+      if (dd < (rr - c.bankZone) * (rr - c.bankZone)) continue;
+      return a;
+    }
+    return null;
+  }
+
+  bool _inBank(Body b) => _bankArc(b) != null;
+
+  void _bank(Body b, double h) {
+    final a = _bankArc(b);
+    if (a == null) return;
+    final qx = b.x - a.cx, qy = b.y - a.cy;
+    final d = math.sqrt(qx * qx + qy * qy), k = c.bankAcc * h / d;
+    b.vx -= qx * k;
+    b.vy -= qy * k;
   }
 
   void _advance(double dt) {

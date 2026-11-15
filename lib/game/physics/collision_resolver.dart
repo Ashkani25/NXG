@@ -86,6 +86,7 @@ double resolveStatic(Body o, double nx, double ny, EdgeKind kind, PhysicsConfig 
   } else {
     e = switch (kind) {
       EdgeKind.post => c.ePost,
+      EdgeKind.corner => c.eCorner,
       EdgeKind.net => c.eNet,
       EdgeKind.rail => o.isBall ? c.eRailBall : c.eRailDisc,
     };
@@ -96,7 +97,8 @@ double resolveStatic(Body o, double nx, double ny, EdgeKind kind, PhysicsConfig 
   final vt = math.sqrt(tx * tx + ty * ty);
   var kt = 1.0;
   if (vt > 1e-9) {
-    final dv = math.min(vt, c.muRail * o.muMul * (1 + e) * an);
+    final mu = c.muRail * o.muMul * (kind == EdgeKind.corner ? c.muCornerK : 1);
+    final dv = math.min(vt, mu * (1 + e) * an);
     kt = (vt - dv) / vt;
   }
   var ox = tx * kt + vno * nx, oy = ty * kt + vno * ny;
