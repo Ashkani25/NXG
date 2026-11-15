@@ -329,7 +329,16 @@ class _RoomBodyState extends State<RoomBody> {
           Positioned(
             left: w * .15,
             top: h * .38,
-            child: Img(ballImg(0), w: h * .19, h: h * .19),
+            child: TweenAnimationBuilder<double>(
+              tween: Tween(begin: 0, end: 1),
+              duration: const Duration(milliseconds: 720),
+              curve: Curves.easeOutCubic,
+              builder: (_, v, child) => Transform.translate(
+                offset: Offset(0, -math.sin(v * math.pi) * 3),
+                child: Transform.scale(scale: .985 + v * .03, child: child),
+              ),
+              child: Img(ballImg(0), w: h * .19, h: h * .19),
+            ),
           ),
           Positioned(
             left: 0,
@@ -900,6 +909,7 @@ class _RoomScreenState extends State<RoomScreen> {
               disabled: !picked && link.picks.length >= 6,
               onTap: () => Navigator.pop(cc, 'pick'),
             ),
+            if (!m.me) ...[const SizedBox(height: 8), Btn('مشاهده پروفایل', colors: G.dark, onTap: () => Navigator.pop(cc, 'profile'))],
             if (!m.me) ...[const SizedBox(height: 8), Btn('اخراج از اتاق', colors: G.red, onTap: () => Navigator.pop(cc, 'kick'))],
             const SizedBox(height: 8),
             Btn('بستن', small: true, colors: G.dark, onTap: () => Navigator.pop(cc)),
@@ -907,7 +917,9 @@ class _RoomScreenState extends State<RoomScreen> {
         ),
       ),
     );
-    if (r == 'pick') {
+    if (r == 'profile') {
+      AppNav.openProfile(m.uid);
+    } else if (r == 'pick') {
       final p = [...link.picks];
       picked ? p.remove(m.uid) : p.add(m.uid);
       link.setPicks(p);
@@ -1077,7 +1089,8 @@ class _RoomScreenState extends State<RoomScreen> {
         actionLabel: playing ? 'ورود به بازی' : 'تیم و ترکیب',
         tags: [
           ruleLabel(st),
-          kFields[st.i('field').clamp(0, kFields.length - 1)].name,
+          // v9: matchmade rooms play the host's equipped pitch (hostFieldBall), not the server's default setting
+          if (const {'casual', 'social'}.contains(room.s('kind', 'casual'))) kFields[st.i('field').clamp(0, kFields.length - 1)].name,
           room.b('ranked') ? 'رتبه‌ای' : 'دوستانه',
           if (room.b('is_private')) 'خصوصی',
           if (link.rtt != null) 'پینگ ${fa(link.rtt!)}',

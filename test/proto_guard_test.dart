@@ -11,6 +11,14 @@ void main() {
   test('v0.5 peer (pv 4, old physics) -> they must update', () {
     expect(protoCheck(me: 'a', online: {'a': (true, kProtoVersion), 'b': (true, 4)}), kMsgUpdateThem);
   });
+  test('v9 Flutter peer with old physics must update', () {
+    expect(protoCheck(me: 'a', online: {'a': (true, kProtoVersion), 'b': (true, 9)}), kMsgUpdateThem);
+    expect(snapProtoCheck({'pf': 'stars', 'pv': 9}), kMsgUpdateThem);
+  });
+  test('v10 Flutter peer with previous physics must not enter v11 lockstep', () {
+    expect(protoCheck(me: 'a', online: {'a': (true, kProtoVersion), 'b': (true, 10)}), kMsgUpdateThem);
+    expect(snapProtoCheck({'pf': 'stars', 'pv': 10}), kMsgUpdateThem);
+  });
   test('newer peer -> I must update', () {
     expect(protoCheck(me: 'a', online: {'a': (true, kProtoVersion), 'b': (true, kProtoVersion + 1)}), kMsgUpdateMe);
   });
@@ -20,7 +28,8 @@ void main() {
   test('host snapshot check', () {
     expect(snapProtoCheck({'pf': 'stars', 'pv': kProtoVersion}), isNull);
     expect(snapProtoCheck({'pf': 'stars'}), kMsgUpdateThem); // v3 Flutter host
-    expect(snapProtoCheck({'pf': 'stars', 'pv': 10}), kMsgUpdateMe);
+    expect(snapProtoCheck({'pf': 'stars', 'pv': kProtoVersion + 1}), kMsgUpdateMe);
+    expect(snapProtoCheck({'pf': 'stars', 'pv': 8}), kMsgUpdateThem); // v0.7 host (no s.fb pitch/ball sync)
     expect(snapProtoCheck({'pf': 'stars', 'pv': 4}), kMsgUpdateThem); // v0.5 host (old physics)
     expect(snapProtoCheck({'q': 1}), isNull); // RN host
   });

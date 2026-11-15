@@ -126,7 +126,7 @@ const kNetProfiles = {'stars', 'godot', 'classic'};
 /// Flutter builds v1-v3 advertise c:'fl' without 'pv' (treated as 3): their 'stars' tuning, linear power and
 /// smooth stop differ from v4, so a mixed match would desync -> v3 and v4 clients must not share a match.
 /// RN / Godot peers (no c:'fl') keep playing the legacy 'classic' profile as before.
-const int kProtoVersion = 9; // v0.6.4: unified physics world (CCD, rounded corners + bank, impact boost, piece attributes, art-sized pitch, wider/deeper goals, bigger ball). v0.6.3: standard physics solver (disc 3x ball, disc absorbs impact, corner slide, capped visual spin). v0.6.2: new pitches + Premium Ultra discs (peers must share the team/field lists). v0.6.1: retuned physics (power, friction, cushions), taller pitch, shallow goals, mid-match formation ('fm')
+const int kProtoVersion = 12; // v0.7.0: v0.6.4 physics world (rounded corners, no energy gain) + Flame match loop + host pitch/ball sync (s.fb) + cup lineup. Distinct from the Godot-branch v10/v11 engines (different physics -> must never lockstep). v0.6.4 = 9.
 // [5 = v0.6.0: billiards physics + 0.8x ball]
 const kMsgUpdateMe = 'نسخه‌ی NEXORA روی گوشی تو قدیمی است. لطفاً برنامه را به‌روز کن تا بتوانی با این بازیکن‌ها بازی کنی.';
 const kMsgUpdateThem = 'یکی از بازیکنان نسخه‌ی قدیمی NEXORA دارد. لطفاً از او بخواه برنامه را به‌روز کند؛ تا آن موقع بازی شروع نمی‌شود.';
@@ -345,6 +345,7 @@ class NetMatch {
       'p': p, 'R': [for (final v in eng.ball.R) (v * 1000).round()], 'ev': List.of(_evs), 'lk': 1,
       'pf': eng.cfg.profile, 'pv': kProtoVersion, 'fm': [eng.cfg.forms[0], eng.cfg.forms[1]],
       if (teamIds != null) 'tm': teamIds,
+      'fb': [eng.cfg.field, eng.cfg.ball],
     };
     _evs.clear();
     if (!moving && atRest(eng)) {

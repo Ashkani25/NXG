@@ -1,6 +1,7 @@
 // Port of src/screens/Settings.tsx + Account.tsx: online account (guest/email, sign up/in, upgrade, reset,
 // sign out, username), audio/haptics/Oracle toggles, volume, graphics quality (High / Smooth), bot level,
 // language, FPS/latency debug overlay, replay intro, reset progress. Plus the password-recovery card.
+import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:material_ui/material_ui.dart';
 
 import '../core/assets.dart';
@@ -82,7 +83,11 @@ class _SettingsSheetState extends State<SettingsSheet> {
 final _emailRe = RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]{2,}$');
 
 class AccountPanel extends StatefulWidget {
-  const AccountPanel({super.key});
+  @visibleForTesting
+  final Future<String?> Function()? ensureGuest;
+  final VoidCallback? onAuthenticated;
+
+  const AccountPanel({super.key, this.ensureGuest, this.onAuthenticated});
   @override
   State<AccountPanel> createState() => _AccountPanelState();
 }
@@ -93,7 +98,17 @@ class _AccountPanelState extends State<AccountPanel> {
   bool editName = false, busy = false, sureOut = false;
   String? sent, err;
 
+  @override
+  void dispose() {
+    email.dispose();
+    pass.dispose();
+    pass2.dispose();
+    name.dispose();
+    super.dispose();
+  }
+
   bool done(Res r, [String? ok]) {
+    if (!mounted) return false;
     if (!r.ok) {
       setState(() => err = r.error ?? 'خطا');
       buzz('heavy');
@@ -116,12 +131,18 @@ class _AccountPanelState extends State<AccountPanel> {
       if (mode == 'forgot') {
         if (done(await a.resetPassword(email.text))) setState(() => sent = 'reset');
       } else if (mode == 'in') {
-        if (done(await a.signIn(email.text, pass.text), 'وارد شدی')) pass.clear();
+        if (done(await a.signIn(email.text, pass.text), 'وارد شدی')) {
+          pass.clear();
+          widget.onAuthenticated?.call();
+        }
       } else if (a.uid != null && a.isGuest) {
         if (done(await a.upgrade(email.text, pass.text))) setState(() => sent = 'upgrade');
       } else {
         final r = await a.signUp(email.text, pass.text);
-        if (done(r)) setState(() => sent = r.info == 'confirm' ? 'confirm' : null);
+        if (done(r)) {
+          setState(() => sent = r.info == 'confirm' ? 'confirm' : null);
+          if (r.info != 'confirm') widget.onAuthenticated?.call();
+        }
       }
     } finally {
       if (mounted) setState(() => busy = false);
@@ -225,13 +246,19 @@ class _AccountPanelState extends State<AccountPanel> {
                 Btn(busy ? 'لطفاً صبر کن…' : mode == 'up' ? (a.isGuest ? 'ثبت ایمیل و حفظ پیشرفت' : 'ساخت حساب') : mode == 'in' ? 'ورود' : 'ارسال لینک', small: true, onTap: submit, disabled: busy),
                 if (a.uid == null) ...[
                   const SizedBox(height: 8),
-                  Btn('ادامه به‌عنوان مهمان', small: true, colors: G.dark, onTap: () async {
+                  Btn('ادامه به‌عنوان مهمان', small: true, colors: G.dark, disabled: busy, onTap: () async {
                     setState(() => busy = true);
                     try {
-                      await a.ensure();
-                      toast('به‌عنوان مهمان وارد شدی', 'ok');
+                      final id = await (widget.ensureGuest ?? a.ensure)();
+                      if (!mounted) return;
+                      if (id == null) {
+                        toast('اتصال برقرار نشد', 'err');
+                      } else {
+                        toast('به‌عنوان مهمان وارد شدی', 'ok');
+                        widget.onAuthenticated?.call();
+                      }
                     } catch (_) {
-                      toast('اتصال برقرار نشد', 'err');
+                      if (mounted) toast('اتصال برقرار نشد', 'err');
                     } finally {
                       if (mounted) setState(() => busy = false);
                     }
