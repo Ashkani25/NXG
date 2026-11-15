@@ -33,10 +33,10 @@ class MatchView {
 }
 
 MatchView computeView(Engine e, double W, double H, double top, double bottom, {bool flipped = false}) {
-  final f = e.f;
   const fs = 1.12;
   final playH = math.max(300.0, H - top - bottom);
-  final s = math.min(W / (f.R - f.L + 56 * fs), playH / ((f.B - f.T) + 2 * e.GGh + 48)) * .96; // v0.6.1b: pitch a touch smaller on screen
+  // v0.6.4: sized on the real rails (the art's own lines) and the 3D goals; no extra shrink
+  final s = math.min(W / (e.Fr - e.Fl + 56 * fs), playH / ((e.Fb - e.Ft) + 2 * e.GGh + 48)) * (e.stars ? 1.0 : .96);
   return MatchView(W, H, s, W / 2 - e.CX * s, top + playH / 2 - e.CY * s, flipped: flipped);
 }
 
@@ -231,6 +231,7 @@ class MatchRenderer {
   /// art's goal lines (art.T, art.B) land on the play area's (f.T, f.B), centred on the play area's centre.
   (double, double, double) _artXf() {
     final a = e.art, f = e.f;
+    if (e.stars) return (e.artK, e.artOx, e.artOy); // v0.6.4: the engine's own transform (rails = drawn lines)
     if (identical(a, f)) return (1.0, 0.0, 0.0);
     final k = (f.B - f.T) / (a.B - a.T);
     final px = (f.L + f.R) / 2, py = (f.T + f.B) / 2, ax = (a.L + a.R) / 2, ay = (a.T + a.B) / 2;
@@ -266,9 +267,9 @@ class MatchRenderer {
     final fr = ui.Rect.fromLTWH(xf.$2, xf.$3, e.art.W * xf.$1, e.art.H * xf.$1);
     c.saveLayer(fr.inflate(40), ui.Paint());
     c.drawImageRect(fld, src, fr, ui.Paint()..filterQuality = ui.FilterQuality.medium);
-    // sharp corners: rounded inner frames of some arts are patched with pitch copied from just inside along the same
-    // rows (stripes stay aligned). Baked once per view, no per-frame cost.
-    {
+    if (!e.stars) {
+      // sharp corners: rounded inner frames of some arts are patched with pitch copied from just inside along the same
+      // rows (stripes stay aligned). Baked once per view, no per-frame cost.
       final ki = fld.width / (e.art.W * xf.$1);
       ui.Rect toImg(ui.Rect r) => ui.Rect.fromLTRB((r.left - fr.left) * ki, (r.top - fr.top) * ki, (r.right - fr.left) * ki, (r.bottom - fr.top) * ki);
       const S = 64.0;
@@ -284,24 +285,48 @@ class MatchRenderer {
     m.shader = ui.Gradient.linear(ui.Offset(fr.left, 0), ui.Offset(fr.right, 0), const [ui.Color(0x00000000), ui.Color(0xff000000), ui.Color(0xff000000), ui.Color(0x00000000)], const [0, .05, .95, 1]);
     c.drawRect(fr, m);
     c.restore();
-    // outside the cushions: shade (no border line). The play rectangle itself is left exactly as the art.
-    final play = ui.Rect.fromLTRB(e.Fl, e.Ft, e.Fr, e.Fb);
-    final outside = ui.Path()
-      ..fillType = ui.PathFillType.evenOdd
-      ..addRect(fr.inflate(60))
-      ..addRect(play);
-    c.drawPath(outside, ui.Paint()..color = const ui.Color(0x8c02040c));
-    // soft inner shadow along the cushions so the edge reads as a raised rail (clipped to the play area)
-    c.save();
-    c.clipRect(play);
-    final sh = ui.Path()
-      ..fillType = ui.PathFillType.evenOdd
-      ..addRect(play.inflate(30))
-      ..addRect(play);
-    c.drawPath(sh, ui.Paint()
-      ..color = const ui.Color(0x99000000)
-      ..maskFilter = const ui.MaskFilter.blur(ui.BlurStyle.normal, 7));
-    c.restore();
+    if (e.stars) {
+      // v0.6.4: the art is shown at its full size, no shaded border or inset shadow; the rails ARE the art's lines.
+      // Only the four rounded corner cushions of the physics (radius kPhys.cornerR) are drawn, so what you see is
+      // exactly what the pieces collide with.
+      final rc = kPhys.cornerR;
+      final cush = ui.Paint()..color = const ui.Color(0x99060a12);
+      final edge = ui.Paint()
+        ..style = ui.PaintingStyle.stroke
+        ..strokeWidth = 2
+        ..color = const ui.Color(0x66ffffff);
+      for (final (vx, vy, sx, sy) in [(e.Fl, e.Ft, 1.0, 1.0), (e.Fr, e.Ft, -1.0, 1.0), (e.Fl, e.Fb, 1.0, -1.0), (e.Fr, e.Fb, -1.0, -1.0)]) {
+        final ax = vx + sx * rc, ay = vy + sy * rc;
+        final arc = ui.Rect.fromCircle(center: ui.Offset(ax, ay), radius: rc);
+        final st = math.atan2(-sy, -sx) - math.pi / 4;
+        final p = ui.Path()
+          ..moveTo(vx, vy)
+          ..lineTo(vx + sx * rc, vy)
+          ..arcTo(arc, math.atan2(-sy, 0), (sx * sy > 0 ? -1 : 1) * math.pi / 2, false)
+          ..close();
+        c.drawPath(p, cush);
+        c.drawArc(arc, st, math.pi / 2, false, edge);
+      }
+    } else {
+      // outside the cushions: shade (no border line). The play rectangle itself is left exactly as the art.
+      final play = ui.Rect.fromLTRB(e.Fl, e.Ft, e.Fr, e.Fb);
+      final outside = ui.Path()
+        ..fillType = ui.PathFillType.evenOdd
+        ..addRect(fr.inflate(60))
+        ..addRect(play);
+      c.drawPath(outside, ui.Paint()..color = const ui.Color(0x8c02040c));
+      // soft inner shadow along the cushions so the edge reads as a raised rail (clipped to the play area)
+      c.save();
+      c.clipRect(play);
+      final sh = ui.Path()
+        ..fillType = ui.PathFillType.evenOdd
+        ..addRect(play.inflate(30))
+        ..addRect(play);
+      c.drawPath(sh, ui.Paint()
+        ..color = const ui.Color(0x99000000)
+        ..maskFilter = const ui.MaskFilter.blur(ui.BlurStyle.normal, 7));
+      c.restore();
+    }
     c.restore();
     _nets[0] = null;
     _nets[1] = null;
@@ -316,7 +341,7 @@ class MatchRenderer {
       c.drawImage(bg!, ui.Offset.zero, _img);
       c.restore();
     }
-    final cam = e.cam;
+    final cam = e.stars ? 0.0 : e.cam; // v0.6.4: no screen shake in the stars profile
     final shx = cam > .05 && hq ? (_fxRand.nextDouble() - .5) * cam * 7 : 0.0;
     final shy = cam > .05 && hq ? (_fxRand.nextDouble() - .5) * cam * 7 : 0.0;
     c.save();
@@ -741,7 +766,7 @@ class MatchRenderer {
   }
 
   bool _netAnim(int i) => _rip[i] > 0 || e.shake[i] > 0 || _shk[i] > 0;
-  double _shakeX(int i, double t) => math.sin(t * 40) * 6 * math.max(e.shake[i], _shk[i]);
+  double _shakeX(int i, double t) => e.stars ? 0.0 : math.sin(t * 40) * 6 * math.max(e.shake[i], _shk[i]);
 
   void _drawNets(ui.Canvas c, double t) {
     for (var i = 0; i < 2; i++) {
@@ -787,8 +812,9 @@ class MatchRenderer {
   /// goal corners: front posts (x1, x2 at the goal line y0) and the inset back corners (bx1, bx2 at yb)
   (double, double, double, double, double, double) _goalBox(int i) {
     final g = e.goals[i];
-    final x1 = g.x1, x2 = g.x2, D = e.DEPTH + 4, y0 = g.y, yb = g.y + g.d * D;
-    final inset = (x2 - x1) * .035;
+    // v0.6.4 (stars): the net box is drawn exactly where the physics nets are (no inset, depth = DEPTH)
+    final x1 = g.x1, x2 = g.x2, D = e.stars ? e.DEPTH : e.DEPTH + 4, y0 = g.y, yb = g.y + g.d * D;
+    final inset = e.stars ? 0.0 : (x2 - x1) * .035;
     return (x1, x2, x1 + inset, x2 - inset, y0, yb);
   }
 
@@ -865,6 +891,10 @@ class MatchRenderer {
   }
 
   void _drawFrames(ui.Canvas c, double t) {
+    if (e.stars) {
+      _drawFrames3D(c, t);
+      return;
+    }
     final pal = _pal, classic = im.net == null;
     final light = classic ? const ui.Color(0xfff4f7fb) : ui.Color.lerp(pal[1], const ui.Color(0xffffffff), .35)!;
     final mid = classic ? const ui.Color(0xffc9d2de) : pal[2];
@@ -919,6 +949,105 @@ class MatchRenderer {
         c.drawCircle(ui.Offset(px + 2.5, y0 + 3), POST_R * .95, _fill);
         _fill.shader = ui.Gradient.radial(ui.Offset(px - POST_R * .35, y0 - POST_R * .35), POST_R * 1.3, [light, mid, dark], const [0, .55, 1]);
         c.drawCircle(ui.Offset(px, y0), POST_R * .9, _fill);
+      }
+      _fill.shader = null;
+    }
+  }
+
+  /// v0.6.4 3D goal frame: two upright round posts standing on the goal line (their base circles ARE the physics posts,
+  /// radius kPhys.postR), a crossbar between the post tops, a lower back frame at the physics net depth, side and roof
+  /// netting between them, and a soft cast shadow. Height is shown by shifting the tops into the goal (oblique view).
+  void _drawFrames3D(ui.Canvas c, double t) {
+    final pal = _pal, classic = im.net == null;
+    final light = classic ? const ui.Color(0xfff4f7fb) : ui.Color.lerp(pal[1], const ui.Color(0xffffffff), .35)!;
+    final mid = classic ? const ui.Color(0xffc9d2de) : pal[2];
+    final dark = classic ? const ui.Color(0xff6f7b8c) : pal[3];
+    final pr = kPhys.postR;
+    for (var i = 0; i < 2; i++) {
+      final g = e.goals[i];
+      final d = g.d.toDouble();
+      final (x1, x2, _, _, y0, yb) = _goalBox(i);
+      const hgt = 22.0; // apparent post height (oblique projection into the goal)
+      final ty = y0 + d * hgt, by = yb + d * hgt * .55; // crossbar line / back top bar line
+      final rb = _bulge((x1 + x2) / 2, .25, t, i, _netAnim(i)) * .3;
+      // cast shadow of the whole frame on the grass (light from the top-left)
+      _bar
+        ..shader = null
+        ..strokeWidth = pr * 1.4
+        ..color = const ui.Color(0x47000000)
+        ..maskFilter = const ui.MaskFilter.blur(ui.BlurStyle.normal, 4);
+      _path
+        ..reset()
+        ..moveTo(x1 + 8, y0 + 9)
+        ..lineTo(x1 + 8, yb + 9 + rb)
+        ..lineTo(x2 + 8, yb + 9 + rb)
+        ..lineTo(x2 + 8, y0 + 9)
+        ..moveTo(x1 + 8, y0 + 9)
+        ..lineTo(x2 + 8, y0 + 9);
+      c.drawPath(_path, _bar);
+      _bar.maskFilter = null;
+      // roof + side netting (light mesh between the top frame bars)
+      _netP
+        ..strokeWidth = 1
+        ..color = const ui.Color(0x40ffffff);
+      const nRoof = 14;
+      for (var k = 0; k <= nRoof; k++) {
+        final x = x1 + (x2 - x1) * k / nRoof;
+        c.drawLine(ui.Offset(x, ty), ui.Offset(x, by + rb), _netP);
+      }
+      for (var k = 1; k <= 4; k++) {
+        final y = ty + (by + rb - ty) * k / 5;
+        c.drawLine(ui.Offset(x1, y), ui.Offset(x2, y), _netP);
+        // side nets: from the ground line up to the top bar
+        final yg = y0 + (yb - y0) * k / 5;
+        c.drawLine(ui.Offset(x1, yg), ui.Offset(x1, y), _netP);
+        c.drawLine(ui.Offset(x2, yg), ui.Offset(x2, y), _netP);
+      }
+      // back frame: ground bar + uprights + top bar (thinner, darker = further)
+      _bar
+        ..strokeWidth = 3.4
+        ..color = dark;
+      _path
+        ..reset()
+        ..moveTo(x1, y0)
+        ..lineTo(x1, yb + rb)
+        ..lineTo(x2, yb + rb)
+        ..lineTo(x2, y0)
+        ..moveTo(x1, yb + rb)
+        ..lineTo(x1, by + rb)
+        ..moveTo(x2, yb + rb)
+        ..lineTo(x2, by + rb)
+        ..moveTo(x1, ty)
+        ..lineTo(x1, by + rb)
+        ..lineTo(x2, by + rb)
+        ..lineTo(x2, ty);
+      c.drawPath(_path, _bar);
+      _bar
+        ..strokeWidth = 1.5
+        ..color = mid;
+      c.drawPath(_path, _bar);
+      // upright posts: cylinders from the base (physics circle) to the top, shaded across their width
+      for (final px in [x1, x2]) {
+        _bar
+          ..strokeWidth = pr * 2
+          ..strokeCap = ui.StrokeCap.round
+          ..shader = ui.Gradient.linear(ui.Offset(px - pr, 0), ui.Offset(px + pr, 0), [light, mid, dark], const [0, .45, 1]);
+        c.drawLine(ui.Offset(px, y0), ui.Offset(px, ty), _bar);
+      }
+      // crossbar between the post tops (tube shading across its width) + highlight
+      _bar
+        ..strokeWidth = pr * 1.7
+        ..shader = ui.Gradient.linear(ui.Offset(0, ty - pr), ui.Offset(0, ty + pr), [light, mid, dark], const [0, .5, 1]);
+      c.drawLine(ui.Offset(x1, ty), ui.Offset(x2, ty), _bar);
+      _bar
+        ..shader = null
+        ..strokeWidth = 1.4
+        ..color = const ui.Color(0xe6ffffff);
+      c.drawLine(ui.Offset(x1 + pr, ty - pr * .45), ui.Offset(x2 - pr, ty - pr * .45), _bar);
+      // post bases on the goal line: exactly the collision circles
+      for (final px in [x1, x2]) {
+        _fill.shader = ui.Gradient.radial(ui.Offset(px - pr * .35, y0 - pr * .35), pr * 1.3, [light, mid, dark], const [0, .55, 1]);
+        c.drawCircle(ui.Offset(px, y0), pr, _fill);
       }
       _fill.shader = null;
     }
@@ -989,17 +1118,72 @@ class MatchRenderer {
     final steps = shortLong
         ? math.max(2, ((3 + pw * 4) * (e.cfg.stats != null ? aimPreview(e.statsOf(team).accuracy) : 1)).round())
         : math.max(2, ((5 + pw * 6) * (e.cfg.stats != null ? aimPreview(e.statsOf(team).accuracy) : 1)).round());
-    for (var i = 1; i <= steps; i++) {
-      final d = L + 8 + i * (shortLong ? 12 : 22), k = 1 - i / (steps + 1);
-      if (shortLong && d > L + r * .7) break; // Godot: accuracy dots stay just past the tip
-      _addP.color = pc.withValues(alpha: .6 * k);
-      c.drawCircle(ui.Offset(x + ux * d, y + uy * d), 2.2 + 2 * k, _addP);
+    if (e.stars) {
+      _drawPrediction(c, pc, team);
+    } else {
+      for (var i = 1; i <= steps; i++) {
+        final d = L + 8 + i * (shortLong ? 12 : 22), k = 1 - i / (steps + 1);
+        if (shortLong && d > L + r * .7) break; // Godot: accuracy dots stay just past the tip
+        _addP.color = pc.withValues(alpha: .6 * k);
+        c.drawCircle(ui.Offset(x + ux * d, y + uy * d), 2.2 + 2 * k, _addP);
+      }
     }
     _addP.color = const ui.Color(0xffffffff);
     _stroke
       ..strokeWidth = 2.5
       ..color = const ui.Color(0x2effffff);
     c.drawLine(ui.Offset(x - ux * r, y - uy * r), ui.Offset(x - ux * (r + 18 + pw * 60), y - uy * (r + 18 + pw * 60)), _stroke);
+  }
+
+  /// v0.6.4 trajectory preview: dots along the path the SAME physics predicts (Engine.aimPrediction), up to the first
+  /// contact / rail bounce, then a ghost ring where the shooter touches and short lines for where both bodies go.
+  /// Preview length grows with the accuracy stat (as the old guide dots did); no accuracy deviation is shown.
+  void _drawPrediction(ui.Canvas c, ui.Color pc, int team) {
+    final pr = e.aimPrediction();
+    if (pr == null || pr.n < 2) return;
+    final acc = e.cfg.stats != null ? aimPreview(e.statsOf(team).accuracy) / 1.2 : 1.0; // .375 .. 1
+    final maxLen = 260 + 640 * acc;
+    var len = 0.0, next = 30.0;
+    final p = pr.path;
+    var reached = true;
+    for (var i = 1; i < pr.n; i++) {
+      final ax = p[2 * i - 2], ay = p[2 * i - 1], bx = p[2 * i], by = p[2 * i + 1];
+      final dx = bx - ax, dy = by - ay, sl = math.sqrt(dx * dx + dy * dy);
+      while (next <= len + sl) {
+        final q = (next - len) / sl;
+        final fade = 1 - next / maxLen;
+        _addP.color = pc.withValues(alpha: .25 + .4 * fade);
+        c.drawCircle(ui.Offset(ax + dx * q, ay + dy * q), 2.6, _addP);
+        next += 22;
+        if (next > maxLen) break;
+      }
+      len += sl;
+      if (next > maxLen) {
+        reached = false;
+        break;
+      }
+    }
+    _addP.color = const ui.Color(0xffffffff);
+    if (!reached || pr.hit == 0) return;
+    final b = e.drag?.b;
+    final r = b?.r ?? kPhys.discR;
+    _stroke
+      ..strokeWidth = 2
+      ..color = pc.withValues(alpha: .55);
+    c.drawCircle(ui.Offset(pr.hx, pr.hy), r, _stroke);
+    void dir(double ox, double oy, double vx, double vy, double a) {
+      final v = math.sqrt(vx * vx + vy * vy);
+      if (v < 30) return;
+      final l = math.min(110.0, 30 + v * .03);
+      _stroke
+        ..strokeWidth = 2.5
+        ..color = const ui.Color(0xffffffff).withValues(alpha: a);
+      c.drawLine(ui.Offset(ox, oy), ui.Offset(ox + vx / v * l, oy + vy / v * l), _stroke);
+    }
+
+    dir(pr.hx, pr.hy, pr.sx, pr.sy, .45);
+    final tg = pr.target;
+    if (tg != null) dir(tg.x, tg.y, pr.tx, pr.ty, .75);
   }
 
   /// v0.6.1 aim arrow: one silver sprite, head drawn at a fixed aspect and the shaft stretched to the pull length,
