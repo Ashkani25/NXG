@@ -98,8 +98,10 @@ class PhysicsWorld {
       final b = B[i];
       _x0[i] = b.x;
       _y0[i] = b.y;
-      applyFriction(b, h, c);
-      _bank(b, h);
+      // a body on a corner bank never falls asleep there (it is eased out first)
+      final banked = _inBank(b);
+      applyFriction(b, h, c, canSleep: !banked);
+      if (banked) _bank(b, h);
     }
     // ---- continuous collision ----
     var t = 0.0;

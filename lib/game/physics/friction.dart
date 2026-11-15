@@ -19,13 +19,13 @@ double decaySpeed(double v, double h, double damp, double roll) {
 }
 
 /// apply friction to [b] over [h]; returns true when the body is (now) asleep
-bool applyFriction(Body b, double h, PhysicsConfig c) {
+bool applyFriction(Body b, double h, PhysicsConfig c, {bool canSleep = true}) {
   if (b.vx == 0 && b.vy == 0) return true;
   final sp = math.sqrt(b.vx * b.vx + b.vy * b.vy);
   final ball = b.isBall;
   final damp = (ball ? c.ballDamp : c.discDamp) * b.dampMul, roll = ball ? c.ballRoll : c.discRoll;
   final ns = decaySpeed(sp, h, damp, roll);
-  if (ns < c.vSleep) {
+  if (ns < c.vSleep && canSleep || ns == 0) {
     b.vx = 0;
     b.vy = 0;
     return true;
