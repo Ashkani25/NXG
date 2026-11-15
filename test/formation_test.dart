@@ -18,7 +18,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// Expected kick-off position of slot [i] of formation [fi] for [team] (0 = bottom half, 1 = top half).
 (double, double) expectedSlot(Engine e, int fi, int team, int i) {
   final sl = slots(fi)[i];
-  final ins = e.tu.discR + 6;
+  final ins = kPhys.discR + 6;
   final x = e.Fl + ins + sl[0] * (e.Fr - e.Fl - 2 * ins);
   final y = team != 0 ? e.Ft + sl[1] * (e.Fb - e.Ft) : e.Fb - sl[1] * (e.Fb - e.Ft);
   return (x, y);

@@ -151,6 +151,12 @@ const kTuneGodot = PhysTune(
   subPx: 4, subMax: 16, stepCap: 14, rollK: .6,
 );
 
+/// v0.6.4 power stat multiplier for the UI and tests: 0.70 (power 1) .. 1.30 (power 10), see physics/shooting.dart.
+double statMul(double power) => kPhys.powerMul(power);
+
+/// v0.6.4 pull curve (0..1 -> share of the full-pull speed), see physics/shooting.dart.
+double shotCurve(double p) => shot.shotCurveN(p);
+
 /// Legacy tuning table: only the 'godot' parity profile still uses one ('stars' runs physics/physics_world.dart).
 PhysTune? tuneFor(String profile) => profile == 'godot' ? kTuneGodot : null;
 

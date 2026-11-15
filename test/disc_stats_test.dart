@@ -1,4 +1,4 @@
-// v4: per-disc stats really change play. Power scales the shot (+-25%), accuracy shrinks the aim deviation,
+// v4: per-disc stats really change play. Power scales the shot (v0.6.4: 0.70..1.30), accuracy shrinks the aim deviation,
 // and the per-team defaults differ deterministically (shared by every online peer).
 import 'dart:math' as math;
 
@@ -42,7 +42,7 @@ void main() {
     expect(mid, greaterThan(lo));
   });
 
-  test('v0.6.1 power: stat multiplier is linear 0.62..1.0 and power 10 at full pull = discVmax (the cap)', () {
+  test('v0.6.4 power: stat multiplier is linear 0.70..1.30, power 10 at full pull = shotBase x 1.30', () {
     double launch(double pw) {
       final e = Engine(_cfg([DiscStats(pw, 10), DiscStats.def]), rand: math.Random(1).nextDouble);
       final b = e.bodies.firstWhere((x) => x.team == 0);
@@ -51,11 +51,11 @@ void main() {
     }
 
     final v10 = launch(10), v5 = launch(5), v8 = launch(8), v1 = launch(1);
-    expect(v5 / v10, closeTo(statMul(5), 1e-9));
-    expect(v8 / v10, closeTo(statMul(8), 1e-9));
-    expect(v1 / v10, closeTo(.62, 1e-9));
+    expect(v8 / v10, closeTo(statMul(8) / statMul(10), 1e-9));
+    expect(v5 / v10, closeTo(statMul(5) / 1.3, 1e-9));
+    expect(v1 / v10, closeTo(.70 / 1.30, 1e-9));
     expect(v1, greaterThan(0));
-    expect(v10, closeTo(kTuneStars.discVmax, 1e-6));
+    expect(v10, closeTo(kPhys.shotBase * 1.30, 1e-6));
   });
 
   test('accuracy reduces deviation', () {
