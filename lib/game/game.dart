@@ -1,11 +1,14 @@
-// Flame host for a match: owns the frame loop (Flame's ticker) and paints the
-// MatchRenderer. The simulation step itself is injected (offline: Engine.update; online: the net controller).
+// Flame host for a match (v0.7.0): a FlameGame whose component tree (flame/match_components.dart) drives the
+// deterministic engine from Flame's update and paints the match as layered components. The simulation step itself
+// is injected (offline: Engine.update; online: the net controller), and the engine's accumulator runs
+// lib/game/physics at its fixed 240 Hz step; components only read and interpolate.
 import 'dart:ui' as ui;
 
 import 'package:flame/game.dart';
 import 'package:flutter/widgets.dart';
 
 import 'engine.dart';
+import 'flame/match_components.dart';
 import 'render.dart';
 
 class MatchGame extends FlameGame {
@@ -14,6 +17,7 @@ class MatchGame extends FlameGame {
   final void Function(double dt) onTick;
   double _t = 0;
   bool paused = false;
+  late final SoftCamera softCam = SoftCamera();
 
   // perf probes for the debug overlay
   double frameMs = 0, stepMs = 0;
@@ -23,8 +27,16 @@ class MatchGame extends FlameGame {
 
   MatchView? get view => r?.v;
 
+  /// render clock (smoothed frame time, seconds since the match opened)
+  double get time => _t;
+
   @override
   ui.Color backgroundColor() => const ui.Color(0xff02040c);
+
+  @override
+  Future<void> onLoad() async {
+    await addAll([FixedStepDriver(), FrameClock(), softCam, BackgroundComponent(), PitchSpace(), FlashComponent()]);
+  }
 
   // v5 smoother motion: vsync deltas jitter by a few ms on Android, which makes the fixed-step interpolation stutter.
   // A light low-pass on dt evens the frame pacing; real hitches (> 2x the average) pass through unfiltered so the
@@ -46,9 +58,8 @@ class MatchGame extends FlameGame {
     return _dtAvg + pay;
   }
 
-  @override
-  void update(double rawDt) {
-    super.update(rawDt);
+  /// Called by [FixedStepDriver] (first component in the update order) once per Flame frame.
+  void driveFrame(double rawDt) {
     final dt = _smooth(rawDt);
     _t += dt;
     if (!paused) {
@@ -62,12 +73,15 @@ class MatchGame extends FlameGame {
     frameMs = frameMs * .9 + rawDt * 1000 * .1;
   }
 
-  @override
-  void render(ui.Canvas canvas) {
-    super.render(canvas);
-    r?.render(canvas, _t);
+  /// screen (logical px) -> world units, through the same transform the pitch space paints with (incl. soft camera)
+  Offset? toWorld(Offset p) {
+    final v = r?.v;
+    if (v == null) return null;
+    var x = p.dx, y = p.dy;
+    if (v.flipped) {
+      x = v.W - x;
+      y = v.H - y;
+    }
+    return Offset((x - v.ox - softCam.x) / v.s, (y - v.oy - softCam.y) / v.s);
   }
-
-  /// screen (logical px) -> world units
-  Offset? toWorld(Offset p) => r?.v.toWorld(p.dx, p.dy);
 }

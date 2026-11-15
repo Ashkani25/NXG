@@ -144,7 +144,7 @@ class MatchRenderer {
   final ui.Paint _addP = ui.Paint()..blendMode = ui.BlendMode.plus;
   final ui.Paint _shadowP = ui.Paint()
     ..filterQuality = ui.FilterQuality.low
-    ..color = const ui.Color(0x80ffffff);
+    ..color = const ui.Color(0xa6ffffff); // v0.7.0: deeper soft black drop shadow (3D look)
   final ui.Paint _stroke = ui.Paint()
     ..style = ui.PaintingStyle.stroke
     ..strokeCap = ui.StrokeCap.round
@@ -334,86 +334,144 @@ class MatchRenderer {
   }
 
   // ---------------- frame ----------------
-  void render(ui.Canvas c, double t) {
-    if (bg != null) {
-      c.save();
-      c.scale(1 / dpr);
-      c.drawImage(bg!, ui.Offset.zero, _img);
-      c.restore();
-    }
+  // ---------------------------------------------------------------- v0.7.0 layers (Flame components)
+  // The match is drawn by Flame components (lib/game/flame/), each painting ONE layer below in priority order:
+  // background (screen) -> [pitch space: nets, shadows, discs, turn rings, trail, ball, goal frames, aim, particles]
+  // -> flash (screen). [beginFrame] computes the per-frame shared state (interpolation alpha, net fx) once.
+  double _al = 1, _ft = 0, _shx = 0, _shy = 0, _fdt = 0, _fPrev = -1;
+  double get frameAlpha => _al;
+
+  /// per-frame shared state; call once per frame before the layers paint (MatchFrameClock does this in update()).
+  void beginFrame(double t) {
+    _fdt = _fPrev < 0 ? 0.0 : (t - _fPrev).clamp(0.0, .1).toDouble();
+    _fPrev = t;
+    _ft = t;
+    _al = e.alpha();
     final cam = e.stars ? 0.0 : e.cam; // v0.6.4: no screen shake in the stars profile
-    final shx = cam > .05 && hq ? (_fxRand.nextDouble() - .5) * cam * 7 : 0.0;
-    final shy = cam > .05 && hq ? (_fxRand.nextDouble() - .5) * cam * 7 : 0.0;
+    _shx = cam > .05 && hq ? (_fxRand.nextDouble() - .5) * cam * 7 : 0.0;
+    _shy = cam > .05 && hq ? (_fxRand.nextDouble() - .5) * cam * 7 : 0.0;
+    _netFx(t, _al);
+    _visualSpin(_fdt);
+  }
+
+  void paintBackground(ui.Canvas c) {
+    if (bg == null) return;
     c.save();
+    c.scale(1 / dpr);
+    c.drawImage(bg!, ui.Offset.zero, _img);
+    c.restore();
+  }
+
+  /// screen -> world transform of the pitch space; [camX]/[camY] = soft camera offset in logical px
+  void applyWorld(ui.Canvas c, {double camX = 0, double camY = 0}) {
     if (v.flipped) {
       c.translate(v.W, v.H);
       c.rotate(math.pi);
     }
-    c.translate(v.ox + shx, v.oy + shy);
+    c.translate(v.ox + _shx + camX, v.oy + _shy + camY);
     c.scale(v.s);
-    final al = e.alpha();
-    _netFx(t, al);
-    _drawNets(c, t);
-    _drawBodies(c, t, al);
+  }
+
+  void paintNets(ui.Canvas c) => _drawNets(c, _ft);
+  void paintShadows(ui.Canvas c) => _drawShadows(c, _al);
+  void paintDiscs(ui.Canvas c) => _drawDiscs(c, _ft, _al);
+  void paintTrail(ui.Canvas c) {
     _drawTrail(c);
-    _drawStreaks(c, al);
-    _drawBall(c, al, shx, shy);
-    _drawFrames(c, t);
+    _drawStreaks(c, _al);
+  }
+
+  void paintBall(ui.Canvas c) => _drawBall(c, _al, _shx, _shy);
+  void paintGoalFrames(ui.Canvas c) => _drawFrames(c, _ft);
+  void paintAim(ui.Canvas c) {
     final d = e.drag;
     if (d != null) {
-      _drawAim(c, t, d.b.px + (d.b.x - d.b.px) * al + d.b.vox, d.b.py + (d.b.y - d.b.py) * al + d.b.voy);
+      _drawAim(c, _ft, d.b.px + (d.b.x - d.b.px) * _al + d.b.vox, d.b.py + (d.b.y - d.b.py) * _al + d.b.voy);
     } else {
       _aimOn = false;
     }
-    _drawParts(c);
+  }
+
+  void paintParticles(ui.Canvas c) => _drawParts(c);
+  void paintFlash(ui.Canvas c) {
+    if (e.flash <= 0) return;
+    _fill.color = ui.Color.fromRGBO(255, 255, 255, e.flash * .28);
+    c.drawRect(ui.Rect.fromLTWH(0, 0, v.W, v.H), _fill);
+  }
+
+  /// All layers in one call (headless snapshot tools / tests). The game itself paints through the Flame components.
+  void render(ui.Canvas c, double t) {
+    beginFrame(t);
+    paintBackground(c);
+    c.save();
+    applyWorld(c);
+    paintNets(c);
+    paintShadows(c);
+    paintDiscs(c);
+    paintTrail(c);
+    paintBall(c);
+    paintGoalFrames(c);
+    paintAim(c);
+    paintParticles(c);
     c.restore();
-    if (e.flash > 0) {
-      _fill.color = ui.Color.fromRGBO(255, 255, 255, e.flash * .28);
-      c.drawRect(ui.Rect.fromLTWH(0, 0, v.W, v.H), _fill);
+    paintFlash(c);
+  }
+
+  // ---- visual-only disc spin (v0.7.0) ----
+  // The v0.6.4 physics has no disc spin. For a lively but readable shot the struck disc gets a short visual twirl
+  // proportional to its launch speed (so it scales with the aim-arrow length, like the power), capped at
+  // [kVisDiscSpin] rad/s and damped out in ~0.6 s. Never touches the simulation.
+  static const double kVisDiscSpin = 5.0, kVisSpinDamp = 3.2;
+  final Float64List _vAng = Float64List(32), _vOmega = Float64List(32);
+  Object? _lastShotSeen;
+  int _shotsSeen = -1;
+  void _visualSpin(double dt) {
+    final ls = e.lastShot;
+    if (ls != null && (e.shots != _shotsSeen || !identical(ls, _lastShotSeen))) {
+      _shotsSeen = e.shots;
+      _lastShotSeen = ls;
+      final i = e.bodies.indexOf(ls);
+      final sp = math.sqrt(ls.vx * ls.vx + ls.vy * ls.vy);
+      if (i >= 0 && i < 32 && sp > 1) {
+        final k = (sp / kPhys.vCap).clamp(0.0, 1.0);
+        _vOmega[i] = kVisDiscSpin * k * ((i & 1) == 0 ? 1 : -1);
+      }
+    }
+    if (dt <= 0) return;
+    final q = math.exp(-kVisSpinDamp * dt);
+    for (var i = 0; i < e.bodies.length && i < 32; i++) {
+      if (_vOmega[i] == 0) continue;
+      _vAng[i] += _vOmega[i] * dt;
+      _vOmega[i] *= q;
+      if (_vOmega[i].abs() < .02) _vOmega[i] = 0;
     }
   }
 
-  void _drawBodies(ui.Canvas c, double t, double al) {
-    final aimTeam = e.phase == Phase.aim ? e.turn : -1;
-    final aiTurn = e.isAiTurn();
+  void _drawShadows(ui.Canvas c, double al) {
     var n = 0;
-    // shadows (1 atlas call), discs (1 call), dark tint, gloss (1 call)
+    // soft black drop shadows (1 atlas call), offset down-right like a top-left light
     for (final b in e.bodies) {
       if (identical(b, e.ball)) continue;
       final x = b.px + (b.x - b.px) * al + b.vox, y = b.py + (b.y - b.py) * al + b.voy;
-      final r = b.r * (1 + b.sq * .07), R = r * 1.3;
+      final r = b.r * (1 + b.sq * .07), R = r * 1.36;
       final sc = 2 * R / spr;
-      _set(_xf, n, sc, 0, x + r * .14 - R, y + r * .26 - R);
+      _set(_xf, n, sc, 0, x + r * .16 - R, y + r * .28 - R);
       _rect(_rc, n, 3);
       n++;
     }
     c.drawRawAtlas(atlas, _vf(_xf, n * 4), _vf(_rc, n * 4), null, null, null, _shadowP);
-    // active glow ring (only the player on turn)
-    final pulse = .5 + .5 * math.sin(t * 4);
+  }
+
+  void _drawDiscs(ui.Canvas c, double t, double al) {
+    var n = 0;
+    var bi = -1;
     for (final b in e.bodies) {
-      if (identical(b, e.ball)) continue;
-      final active = b.team == aimTeam && !(e.drag != null && !identical(e.drag!.b, b)) && !aiTurn;
-      if (!active) continue;
-      final x = b.px + (b.x - b.px) * al + b.vox, y = b.py + (b.y - b.py) * al + b.voy;
-      final r = b.r * (1 + b.sq * .07);
-      _stroke
-        ..strokeWidth = hq ? 6 : 4
-        ..color = _teamGlow[b.team].withValues(alpha: .18 + .2 * pulse)
-        ..blendMode = ui.BlendMode.plus;
-      c.drawCircle(ui.Offset(x, y), r + 3, _stroke);
-      _stroke
-        ..strokeWidth = 2.5
-        ..color = _teamGlow[b.team].withValues(alpha: .35 + .3 * pulse);
-      c.drawCircle(ui.Offset(x, y), r + 2.5, _stroke);
-      _stroke.blendMode = ui.BlendMode.srcOver;
-    }
-    n = 0;
-    for (final b in e.bodies) {
+      bi++;
       if (identical(b, e.ball)) continue;
       final x = b.px + (b.x - b.px) * al + b.vox, y = b.py + (b.y - b.py) * al + b.voy;
       final r = b.r * (1 + b.sq * .07);
       final sc = 2 * r / spr;
-      final cs = math.cos(b.ang) * sc, sn = math.sin(b.ang) * sc;
+      final ang = b.ang + (bi < 32 ? _vAng[bi] : 0);
+      final cs = math.cos(ang) * sc, sn = math.sin(ang) * sc;
       // RSTransform rotating about the sprite centre
       _xf[n * 4] = cs;
       _xf[n * 4 + 1] = sn;
@@ -434,6 +492,40 @@ class MatchRenderer {
       n++;
     }
     c.drawRawAtlas(atlas, _vf(_xf, n * 4), _vf(_rc, n * 4), null, null, null, _atlasP);
+    _turnRings(c, t, al);
+  }
+
+  /// Turn marker (from the Godot-branch 97bef10): a slim ring in the team colour just outside every disc of the side
+  /// on turn (AI and remote players included), drawn above the discs, three arcs slowly orbiting over a faint
+  /// breathing halo. While a disc is being dragged only that disc keeps its ring.
+  void _turnRings(ui.Canvas c, double t, double al) {
+    if (e.phase != Phase.aim) return;
+    final team = e.turn, col = _teamGlow[team.clamp(0, 1)];
+    final pulse = .5 + .5 * math.sin(t * 3), rot = t * 1.4;
+    const third = 2 * math.pi / 3;
+    for (final b in e.bodies) {
+      if (identical(b, e.ball) || b.team != team) continue;
+      if (e.drag != null && !identical(e.drag!.b, b)) continue;
+      final x = b.px + (b.x - b.px) * al + b.vox, y = b.py + (b.y - b.py) * al + b.voy;
+      final r = b.r * (1 + b.sq * .07), rr = r * 1.16, ctr = ui.Offset(x, y);
+      _stroke
+        ..blendMode = ui.BlendMode.plus
+        ..strokeWidth = r * (hq ? .16 : .13)
+        ..color = col.withValues(alpha: .10 + .10 * pulse);
+      c.drawCircle(ctr, rr, _stroke);
+      _stroke
+        ..strokeWidth = r * .045
+        ..color = col.withValues(alpha: .22 + .1 * pulse);
+      c.drawCircle(ctr, rr, _stroke);
+      _stroke
+        ..blendMode = ui.BlendMode.srcOver
+        ..strokeWidth = r * .085
+        ..color = col.withValues(alpha: .78 + .2 * pulse);
+      final rect = ui.Rect.fromCircle(center: ctr, radius: rr);
+      for (var k = 0; k < 3; k++) {
+        c.drawArc(rect, rot + k * third, third * .55, false, _stroke);
+      }
+    }
   }
 
   void _set(Float32List xf, int i, double scos, double ssin, double tx, double ty) {
@@ -460,7 +552,8 @@ class MatchRenderer {
   // movement: axis = up x dir = (-dy, dx, 0), angle = distance / radius, so it slows with the ball, stops exactly
   // when it stops and follows bounces. Render-only: the engine's physics are untouched.
   final Float64List _bR = Float64List.fromList([1, 0, 0, 0, 1, 0, 0, 0, 1]);
-  double _blx = double.nan, _bly = 0;
+  double _blx = double.nan, _bly = 0, _bOmega = 0;
+  static const double kVisBallSpin = 14.0; // rad/s, visual roll cap (~2.2 turns/s)
 
   void _rollBall(double x, double y, double r) {
     if (_blx.isNaN) {
@@ -472,8 +565,23 @@ class MatchRenderer {
     _blx = x;
     _bly = y;
     final d = math.sqrt(dx * dx + dy * dy);
-    if (d < 1e-6 || d > r * 4) return; // at rest, or a teleport (kick-off reset)
-    final kx = -dy / d, ky = dx / d, th = d / r; // axis (kz = 0)
+    if (d < 1e-6 || d > r * 4) {
+      _bOmega = 0;
+      return; // at rest, or a teleport (kick-off reset)
+    }
+    // v0.7.0 calm roll: the visual angular speed follows the true rolling rate (d / r per frame) through a short
+    // low-pass and is capped at [kVisBallSpin] rad/s, so a hard shot still visibly rolls but the texture never
+    // blurs into a strobe; the ball's position (physics) is untouched.
+    final raw = d / r;
+    double th;
+    if (_fdt > 0) {
+      final w = math.min(raw / _fdt, kVisBallSpin);
+      _bOmega += (w - _bOmega) * math.min(1.0, _fdt * 12);
+      th = _bOmega * _fdt;
+    } else {
+      th = math.min(raw, kVisBallSpin / 60);
+    }
+    final kx = -dy / d, ky = dx / d; // axis (kz = 0)
     final c = math.cos(th), sn = math.sin(th), t = 1 - c;
     // Rodrigues rotation Q about (kx, ky, 0); R = Q * R
     final q0 = c + kx * kx * t, q1 = kx * ky * t, q2 = ky * sn;
