@@ -144,6 +144,31 @@ CardStats cardStats(String seed) {
   return (r1(pw), r1(ac));
 }
 
+/// v0.6.4: deterministic physical attributes of a team's pieces (1..10 each): (mass, collision strength, impact
+/// resistance, control, rotational inertia). Independent of power (own hash), a pure function of the team id, so
+/// every peer derives the same values (online lockstep). 5.5 is neutral for each.
+(double, double, double, double, double) teamPhysFor(String id) {
+  String? cat;
+  for (final x in kTeams) {
+    if (x.id == id) {
+      cat = x.cat;
+      break;
+    }
+  }
+  final h = hashStr('phys:$id'), h2 = hashStr('phys2:$id');
+  double q(int v, int sh) => ((v >> sh) & 0xff) / 0xff;
+  double r1(double v) => (v * 10).round() / 10;
+  // wider spread for the premium families, centred on neutral for the free club / national sides
+  final (lo, hi) = switch (cat) {
+    'ultra' => (7.0, 10.0),
+    'leg' => (6.0, 9.5),
+    'vip' || 'nx' => (5.0, 9.0),
+    _ => (3.5, 7.5),
+  };
+  double st(double k) => r1(lo + (hi - lo) * k);
+  return (st(q(h, 0)), st(q(h, 8)), st(q(h, 16)), st(q(h2, 0)), st(q(h2, 8)));
+}
+
 int rarity(Team t) => t.cat == 'ultra'
     ? 4
     : t.cat == 'vip' || t.cat == 'leg'

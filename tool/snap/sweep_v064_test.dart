@@ -221,12 +221,12 @@ void main() {
               restPocket++;
             } else {
               restOut++;
-              if (gx < 60 && gy < 60) restNear++;
+              if (gx < kPhys.bankZone && gy < kPhys.bankZone) restNear++;
             }
           }
         }
       }
-      _log('${disc ? 'disc' : 'ball'}: $cases shots reached the corner: $left left the corner, $restOut came to rest without clearing 250 px (not touching the corner; $restNear of them within 60 px of both rails), $restPocket stuck touching the corner; '
+      _log('${disc ? 'disc' : 'ball'}: $cases shots reached the corner: $left left the corner, $restOut came to rest without clearing 250 px (not touching the corner; $restNear of them inside the corner bank zone), $restPocket stuck touching the corner; '
           'time pocket->clear mean ${left == 0 ? '-' : _f(tSum / left * 1000)} ms, max ${_f(tMax * 1000)} ms; exit directions: within 20° of straight back $back, '
           'along the side rail $side, along the end rail $end, diagonal $diag');
     }

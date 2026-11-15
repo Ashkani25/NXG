@@ -20,7 +20,7 @@ void main() {
   test('host snapshot check', () {
     expect(snapProtoCheck({'pf': 'stars', 'pv': kProtoVersion}), isNull);
     expect(snapProtoCheck({'pf': 'stars'}), kMsgUpdateThem); // v3 Flutter host
-    expect(snapProtoCheck({'pf': 'stars', 'pv': 9}), kMsgUpdateMe);
+    expect(snapProtoCheck({'pf': 'stars', 'pv': 10}), kMsgUpdateMe);
     expect(snapProtoCheck({'pf': 'stars', 'pv': 4}), kMsgUpdateThem); // v0.5 host (old physics)
     expect(snapProtoCheck({'q': 1}), isNull); // RN host
   });

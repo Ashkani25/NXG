@@ -24,7 +24,13 @@ class DiscRow {
 
 DiscStats _fallback(String id) {
   final (pw, ac) = teamStatsFor(id);
-  return DiscStats(pw, ac);
+  return _withPhys(id, pw, ac);
+}
+
+/// v0.6.4: power / accuracy from the catalog (or the local fallback) + the team's own physical attributes
+DiscStats _withPhys(String id, double pw, double ac) {
+  final (m, st, rs, ct, ine) = teamPhysFor(id);
+  return DiscStats(pw, ac, mass: m, strength: st, resist: rs, control: ct, inertia: ine);
 }
 
 class Discs extends ChangeNotifier {
@@ -63,7 +69,7 @@ class Discs extends ChangeNotifier {
 
   DiscStats stats(String? id) {
     final d = rowFor(id);
-    return d != null ? DiscStats(d.power, d.accuracy) : _fallback(id ?? 'club0');
+    return d != null ? _withPhys(id ?? d.id, d.power, d.accuracy) : _fallback(id ?? 'club0');
   }
 
   int price(String id) => rowFor(id)?.priceGems ?? 0;

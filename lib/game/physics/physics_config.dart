@@ -71,7 +71,7 @@ class PhysicsConfig {
   // ---- boundaries (rails, corner arcs, posts, goal nets) ----
   final double eRailDisc, eRailBall, ePost, eNet;
   final double eCorner, muCornerK; // rounded corner cushion: softer normal, less grip (bodies slide round and out)
-  final double bankAcc, bankZone; // corner bank: within bankZone px of the corner arc a body is eased back into play
+  final double bankAcc, bankZone; // corner bank: centre within r + bankZone of both rails -> pushed away from the corner
   final double muRail; // tangential Coulomb friction on a rail / post
   final double inertiaLo, inertiaHi; // inertia stat -> muRail multiplier
   final double boostK; // impact boost: extra normal speed = boostK * powerFactor * cos(incidence) * |vn|
@@ -171,7 +171,7 @@ const kPhys = PhysicsConfig(
   strengthE: .04, resistE: .03, powerHitE: .05, eMin: .55, eMax: .95,
   slop: .3, posPercent: .8,
   eRailDisc: .60, eRailBall: .64, ePost: .62, eNet: .35, muRail: .08,
-  eCorner: .55, muCornerK: .5, bankAcc: 900, bankZone: 10, inertiaLo: 1.15, inertiaHi: .85,
+  eCorner: .55, muCornerK: .5, bankAcc: 700, bankZone: 40, inertiaLo: 1.15, inertiaHi: .85,
   boostK: .10, keepMax: .95, eGoalHold: .2,
   goalHalfW: 136, goalDepth: 74, ejectSpeed: 343, ejectBelow: 190,
 );

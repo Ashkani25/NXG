@@ -206,28 +206,24 @@ class PhysicsWorld {
     }
   }
 
-  /// corner bank: a body touching (within bankZone of) a rounded corner is eased back towards play, so nothing can
-  /// come to rest or stay pinned in a corner. Acts only in the corner pockets.
-  Arc? _bankArc(Body b) {
-    for (final a in bd.arcs) {
-      final qx = b.x - a.cx, qy = b.y - a.cy;
-      if (qx * a.sx <= 0 || qy * a.sy <= 0) continue;
-      final rr = a.rad - b.r, dd = qx * qx + qy * qy;
-      if (dd < (rr - c.bankZone) * (rr - c.bankZone)) continue;
-      return a;
-    }
-    return null;
+  /// corner bank (a gently raised corner): a body whose centre is within r + bankZone of BOTH rails of a corner is
+  /// accelerated away from the corner vertex (bankAcc), so nothing can come to rest, pin or vibrate in a corner. It
+  /// acts only inside the four corner squares; elsewhere the pitch is flat.
+  double _bankX = 0, _bankY = 0;
+  bool _inBank(Body b) {
+    final gl = b.x - bd.l - b.r, gr = bd.r - b.x - b.r, gt = b.y - bd.t - b.r, gb = bd.b - b.y - b.r;
+    final z = c.bankZone;
+    if (!((gl < z || gr < z) && (gt < z || gb < z))) return false;
+    _bankX = gl < gr ? bd.l : bd.r;
+    _bankY = gt < gb ? bd.t : bd.b;
+    return true;
   }
 
-  bool _inBank(Body b) => _bankArc(b) != null;
-
   void _bank(Body b, double h) {
-    final a = _bankArc(b);
-    if (a == null) return;
-    final qx = b.x - a.cx, qy = b.y - a.cy;
-    final d = math.sqrt(qx * qx + qy * qy), k = c.bankAcc * h / d;
-    b.vx -= qx * k;
-    b.vy -= qy * k;
+    if (!_inBank(b)) return;
+    final qx = b.x - _bankX, qy = b.y - _bankY, d = math.sqrt(qx * qx + qy * qy), k = c.bankAcc * h / d;
+    b.vx += qx * k;
+    b.vy += qy * k;
   }
 
   void _advance(double dt) {
