@@ -5,8 +5,15 @@ import 'package:timezone/timezone.dart' as tz;
 
 import 'cup_logic.dart';
 
-/// Device-local reminder for cups the signed-in player has joined. The server's realtime
-/// notifications remain the fallback while the app is open; no FCM credentials are required.
+/// Old payloads were a bare cup id; new ones are entries ('cup:<id>', 'cupmatch:<cup>:<match>').
+String cupEntryOf(String payload) => payload.startsWith('cup:') || payload.startsWith('cupmatch:') ? payload : 'cup:$payload';
+
+/// Device-local notifications for cups (v0.7.0):
+///  * the 10-minute check-in alarm is scheduled with the OS (zonedSchedule) for EVERY upcoming cup the player is in:
+///    on app start / sign-in ([CupAlerts.syncReminders]), on registration / approval and whenever a cup page loads;
+///  * "draw done" / "your match is ready" are shown immediately ([showNow]) while the app is in the background;
+///  * tapping one deep-links: payload 'cup:<cupId>' opens the cup page, 'cupmatch:<cupId>:<matchId>' enters the match.
+/// No FCM credentials exist in this project, so a fully closed app only gets the pre-scheduled 10-minute alarm.
 class CupReminderService {
   CupReminderService._();
   static final i = CupReminderService._();
@@ -14,9 +21,10 @@ class CupReminderService {
   final FlutterLocalNotificationsPlugin _plugin = FlutterLocalNotificationsPlugin();
   final Map<String, int> _scheduled = {};
   bool _ready = false, _requestedPermission = false;
-  void Function(String cupId)? _open;
+  void Function(String entry)? _open;
 
-  Future<void> init(void Function(String cupId) open) async {
+  /// [open] receives an entry: 'cup:<id>' or 'cupmatch:<cupId>:<matchId>'.
+  Future<void> init(void Function(String entry) open) async {
     if (_ready) {
       _open = open;
       return;
@@ -28,15 +36,21 @@ class CupReminderService {
       settings,
       onDidReceiveNotificationResponse: (response) {
         final id = response.payload;
-        if (id != null && id.isNotEmpty) _open?.call(id);
+        if (id != null && id.isNotEmpty) _open?.call(cupEntryOf(id));
       },
     );
     final launch = await _plugin.getNotificationAppLaunchDetails();
     final launchCup = launch?.notificationResponse?.payload;
     if (launch?.didNotificationLaunchApp == true && launchCup != null && launchCup.isNotEmpty) {
-      WidgetsBinding.instance.addPostFrameCallback((_) => _open?.call(launchCup));
+      WidgetsBinding.instance.addPostFrameCallback((_) => _open?.call(cupEntryOf(launchCup)));
     }
     final android = _plugin.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
+    await android?.createNotificationChannel(const AndroidNotificationChannel(
+      'cup_live',
+      'مسابقه‌های تورنمنت',
+      description: 'قرعه‌کشی انجام شد و مسابقه‌ات آماده است',
+      importance: Importance.max,
+    ));
     await android?.createNotificationChannel(const AndroidNotificationChannel(
       'cup_reminders',
       'یادآور تورنمنت',
@@ -85,10 +99,29 @@ class CupReminderService {
         ),
       ),
       androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
-      payload: cupId,
+      payload: 'cup:$cupId',
     );
     _scheduled[cupId] = epoch;
   }
+
+  /// Immediate notification (draw done, match ready) with a deep-link payload.
+  Future<void> showNow(String key, String title, String? body, String payload) async {
+    if (!_ready) return;
+    await _plugin.show(
+      _id('now:$key'),
+      title,
+      body,
+      const NotificationDetails(
+        android: AndroidNotificationDetails('cup_live', 'مسابقه‌های تورنمنت',
+            channelDescription: 'قرعه‌کشی انجام شد و مسابقه‌ات آماده است', importance: Importance.max, priority: Priority.max,
+            category: AndroidNotificationCategory.event),
+      ),
+      payload: payload,
+    );
+  }
+
+  /// Cups scheduled in this process (for tests / diagnostics).
+  Map<String, int> get scheduled => Map.unmodifiable(_scheduled);
 
   Future<void> cancel(String cupId) async {
     if (!_ready || cupId.isEmpty) return;

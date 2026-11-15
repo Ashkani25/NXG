@@ -164,27 +164,39 @@ class _RoomBodyState extends State<RoomBody> {
             padding: EdgeInsets.only(top: ins.top + 6, bottom: math.max(kb, ins.bottom) + 8),
             child: Column(
               children: [
-                _header(),
-                const SizedBox(height: 8),
-                Padding(padding: const EdgeInsets.symmetric(horizontal: 12), child: _hero(w)),
+                // v0.7.0 tidy: one horizontal gutter, one vertical rhythm, every block on the same card style,
+                // staggered pop-in entrance. Same widgets and actions as before.
+                Enter(i: 0, child: _header()),
+                const SizedBox(height: _gap),
+                Enter(i: 1, child: Padding(padding: const EdgeInsets.symmetric(horizontal: _gx), child: _hero(w))),
                 if (widget.tags.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
-                    child: Wrap(
-                      alignment: WrapAlignment.center,
-                      textDirection: TextDirection.rtl,
-                      spacing: 6,
-                      runSpacing: 4,
-                      children: [for (final t in widget.tags) _Tag(t)],
+                  Enter(
+                    i: 2,
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(_gx, _gap, _gx, 0),
+                      child: Wrap(
+                        alignment: WrapAlignment.center,
+                        textDirection: TextDirection.rtl,
+                        spacing: 6,
+                        runSpacing: 6,
+                        children: [for (final t in widget.tags) _Tag(t)],
+                      ),
                     ),
                   ),
-                const SizedBox(height: 10),
-                _avatars(),
-                if (widget.voiceBar != null) Padding(padding: const EdgeInsets.fromLTRB(12, 4, 12, 0), child: widget.voiceBar),
-                const SizedBox(height: 6),
+                const SizedBox(height: _gap),
+                Enter(
+                  i: 3,
+                  child: _RoomCard(
+                    child: Column(mainAxisSize: MainAxisSize.min, children: [
+                      _avatars(),
+                      if (widget.voiceBar != null) Padding(padding: const EdgeInsets.only(top: 6), child: widget.voiceBar),
+                    ]),
+                  ),
+                ),
+                const SizedBox(height: _gap),
                 Expanded(child: _chatList()),
-                Padding(padding: const EdgeInsets.fromLTRB(12, 6, 12, 8), child: _actionBtn()),
-                Padding(padding: const EdgeInsets.symmetric(horizontal: 12), child: _bottomBar()),
+                Padding(padding: const EdgeInsets.fromLTRB(_gx, _gap, _gx, _gap), child: _actionBtn()),
+                Padding(padding: const EdgeInsets.symmetric(horizontal: _gx), child: _bottomBar()),
               ],
             ),
           ),
@@ -253,11 +265,11 @@ class _RoomBodyState extends State<RoomBody> {
       ),
     );
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 12),
+      margin: const EdgeInsets.symmetric(horizontal: _gx),
       height: 54,
       padding: const EdgeInsets.symmetric(horizontal: 8),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(_radius),
         gradient: const LinearGradient(colors: [_card2, _card]),
         border: Border.all(color: const Color(0x55b57bff)),
       ),
@@ -315,7 +327,7 @@ class _RoomBodyState extends State<RoomBody> {
     return Container(
       height: h,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(_radius),
         border: Border.all(color: const Color(0x99ff8a2a), width: 1.4),
         boxShadow: const [BoxShadow(color: Color(0x40ff6a2a), blurRadius: 22)],
         gradient: const RadialGradient(center: Alignment(0, -.3), radius: 1.1, colors: [Color(0xff2a0f55), Color(0xff0c0726)]),
@@ -1117,4 +1129,25 @@ class _RoomScreenState extends State<RoomScreen> {
       );
     },
   );
+}
+
+
+// v0.7.0 room layout rhythm
+const double _gx = 14, _gap = 10, _radius = 20;
+
+/// The room's standard card: same gradient, rim and radius as the header, used to group related blocks.
+class _RoomCard extends StatelessWidget {
+  final Widget child;
+  const _RoomCard({required this.child});
+  @override
+  Widget build(BuildContext context) => Container(
+        margin: const EdgeInsets.symmetric(horizontal: _gx),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(_radius),
+          gradient: const LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Color(0xb3241048), Color(0xb3120a30)]),
+          border: Border.all(color: const Color(0x40b57bff)),
+        ),
+        child: child,
+      );
 }

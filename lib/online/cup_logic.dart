@@ -180,6 +180,158 @@ int configuredSeriesWinner(String mode, int games, int targetWins, int w1, int w
   return (0, n);
 }
 
+// ------------------------------------------------------------------ series v3 (v0.7.0, server _cup_series_winner_v3)
+/// Number of regulation games of a format (deciders come after these).
+int cupRegGames(String mode, int games) => switch (mode) { 'two_leg' => 2, 'single' => 1, _ => games };
+
+/// One finished game of a pairing, from side 1's (p1's) point of view. [home1] = p1 was the home side (team 0).
+class CupGame {
+  final int g1, g2;
+  final bool home1;
+  const CupGame(this.g1, this.g2, {this.home1 = true});
+}
+
+/// Mirror of _cup_series_winner_v3: 1 / 2 = that side won the pairing, 0 = play another game.
+///  * single: the one game's winner; first_to: first to [targetWins] wins (n = 2*target-1);
+///  * aggregate (n games) / two_leg (2 legs): regulation goals; two_leg with [awayGoals]: then away goals;
+///  * still level -> decider games (each won by its winner); after 3 deciders without a winner side 1 advances.
+int seriesWinnerV3(String mode, int games, int targetWins, List<CupGame> played, {bool awayGoals = false}) {
+  if (mode == 'legacy') {
+    var w1 = 0, w2 = 0, g1 = 0, g2 = 0;
+    for (final g in played) {
+      g1 += g.g1;
+      g2 += g.g2;
+      if (g.g1 > g.g2) w1++;
+      if (g.g2 > g.g1) w2++;
+    }
+    return seriesWinner(games, w1, w2, g1, g2, played.length);
+  }
+  final n = cupRegGames(mode, games);
+  var w1 = 0, w2 = 0, rg1 = 0, rg2 = 0, a1 = 0, a2 = 0, dw1 = 0, dw2 = 0;
+  for (var i = 0; i < played.length; i++) {
+    final g = played[i];
+    if (g.g1 > g.g2) w1++;
+    if (g.g2 > g.g1) w2++;
+    if (i < n) {
+      rg1 += g.g1;
+      rg2 += g.g2;
+      if (!g.home1) a1 += g.g1; // p1 away
+      if (g.home1) a2 += g.g2; // p2 away
+    } else {
+      if (g.g1 > g.g2) dw1++;
+      if (g.g2 > g.g1) dw2++;
+    }
+  }
+  final p = played.length;
+  switch (mode) {
+    case 'first_to':
+      if (w1 >= targetWins) return 1;
+      if (w2 >= targetWins) return 2;
+      if (p < n) return 0;
+      if (w1 != w2) return w1 > w2 ? 1 : 2;
+    case 'single':
+      if (p < 1) return 0;
+      if (rg1 != rg2) return rg1 > rg2 ? 1 : 2;
+    case 'aggregate':
+    case 'two_leg':
+      if (p < n) return 0;
+      if (rg1 != rg2) return rg1 > rg2 ? 1 : 2;
+      if (mode == 'two_leg' && awayGoals && a1 != a2) return a1 > a2 ? 1 : 2;
+    default:
+      throw ArgumentError('bad series mode $mode');
+  }
+  if (dw1 > dw2) return 1;
+  if (dw2 > dw1) return 2;
+  if (p >= n + 3) return 1;
+  return 0;
+}
+
+/// Who is home (team 0, kicks off, shown at the bottom) in game [gameNo] (1-based): p1, except leg 2 of a two-leg tie.
+int cupHomeSide(String mode, int gameNo) => mode == 'two_leg' && gameNo == 2 ? 2 : 1;
+
+/// Is game [gameNo] a tiebreak decider, and how many goals does it need ([decider] 'golden_goal' -> 1).
+bool cupIsDecider(String mode, int games, int gameNo) => mode != 'legacy' && gameNo > cupRegGames(mode, games);
+int cupGoalsFor(String mode, int games, int goals, int gameNo, String decider) =>
+    cupIsDecider(mode, games, gameNo) && decider == 'golden_goal' ? 1 : goals;
+
+/// Plays scores through the v3 rule (home sides per [cupHomeSide]); returns (winner side, games used).
+(int, int) playSeriesV3(String mode, int games, int targetWins, List<(int, int)> scores, {bool awayGoals = false}) {
+  final done = <CupGame>[];
+  for (final (a, b) in scores) {
+    done.add(CupGame(a, b, home1: cupHomeSide(mode, done.length + 1) == 1));
+    final w = seriesWinnerV3(mode, games, targetWins, done, awayGoals: awayGoals);
+    if (w != 0) return (w, done.length);
+  }
+  return (0, done.length);
+}
+
+/// Persian one-line explanation of a format for the create sheet.
+String cupFormatHelpFa(String mode, int games, int targetWins, {bool awayGoals = false, String decider = 'golden_goal'}) {
+  final tie = decider == 'golden_goal' ? 'در تساوی، بازی گل طلایی (اولین گل برنده) تعیین‌کننده است.' : 'در تساوی، یک بازی کامل تعیین‌کننده برگزار می‌شود.';
+  return switch (mode) {
+    'single' => 'نتیجه‌ی همان یک بازی تعیین‌کننده است.',
+    'first_to' => faDigits('هر بازیکنی که زودتر $targetWins برد بگیرد صعود می‌کند (حداکثر ${2 * targetWins - 1} بازی).'),
+    'aggregate' => faDigits('برنده با مجموع گل‌های $games بازی مشخص می‌شود. ') + tie,
+    'two_leg' => 'بازی رفت در خانه‌ی نفر اول و برگشت در خانه‌ی نفر دوم؛ مجموع گل دو بازی${awayGoals ? '، سپس گل خارج از خانه' : ' (گل خارج از خانه حساب نمی‌شود)'}. $tie',
+    _ => formatFa(games),
+  };
+}
+
+/// Cup room line for game [gameNo]: leg / decider / goals to win / who is home.
+String cupGameLabelFa(String mode, int games, int goals, int gameNo, String decider, {bool meIsP1 = true}) {
+  final g = cupGoalsFor(mode, games, goals, gameNo, decider);
+  final dec = cupIsDecider(mode, games, gameNo);
+  final home = cupHomeSide(mode, gameNo) == (meIsP1 ? 1 : 2);
+  final head = dec
+      ? (decider == 'golden_goal' ? 'تعیین‌کننده · گل طلایی' : 'بازی تعیین‌کننده')
+      : mode == 'two_leg'
+          ? (gameNo == 1 ? 'بازی رفت' : 'بازی برگشت')
+          : faDigits('بازی $gameNo از ${cupRegGames(mode, games)}');
+  return faDigits('$head · $g گل برنده است') + (mode == 'two_leg' && !dec ? (home ? ' · میزبان تویی' : ' · مهمانی') : '');
+}
+
+/// Arguments of the cup_create_v3 RPC (server validates everything again).
+Map<String, Object?> cupCreateParams({required String name, required int max, required String mode, required int games, required int targetWins,
+        required int goals, required DateTime startsUtc, int prize = 0, List<int> split = kCupDefaultSplit, bool play = true,
+        bool requireApproval = false, bool awayGoals = false, String decider = 'golden_goal', String prizeTitle = '', double cash = 0, String currency = ''}) =>
+    {
+      'p_name': name, 'p_max': max, 'p_mode': mode,
+      'p_games': mode == 'single' ? 1 : mode == 'two_leg' ? 2 : mode == 'first_to' ? 2 * targetWins - 1 : games,
+      'p_target_wins': mode == 'first_to' ? targetWins : 1,
+      'p_goals': goals, 'p_starts': startsUtc.toUtc().toIso8601String(), 'p_prize': prize, 'p_split': split, 'p_join': play,
+      'p_require_approval': requireApproval, 'p_away_goals': mode == 'two_leg' && awayGoals, 'p_decider': decider,
+      'p_prize_title': prizeTitle, 'p_cash_prize': cash, 'p_cash_currency': currency,
+    };
+
+// ------------------------------------------------------------------ lineup (30 s pre-match window, server cup_ready)
+/// Seconds left on the pre-match lineup screen: the server deadline (lineup_until) when known, never more than
+/// [kCupLineupSeconds] after the local Play press; 0 = use what is selected (or the defaults) now.
+int lineupSecondsLeft({required DateTime now, required DateTime pressedAt, DateTime? serverUntil}) {
+  final local = pressedAt.add(const Duration(seconds: kCupLineupSeconds));
+  final until = serverUntil == null || serverUntil.isAfter(local) ? local : serverUntil;
+  final ms = until.difference(now).inMilliseconds;
+  if (ms <= 0) return 0;
+  return ((ms + 999) ~/ 1000).clamp(0, kCupLineupSeconds);
+}
+
+/// What a player plays with when the lineup timer runs out: their pick, else the equipped team / formation 0 /
+/// the room's pitch and ball.
+({String team, int formation, int field, int ball}) lineupFinal({String? pickedTeam, int? pickedFormation, int? pickedField, int? pickedBall,
+        required String equippedTeam, required int roomField, required int roomBall}) =>
+    (team: pickedTeam ?? equippedTeam, formation: pickedFormation ?? 0, field: pickedField ?? roomField, ball: pickedBall ?? roomBall);
+
+/// 'cupmatch:<cupId>:<matchId>' -> (cupId, matchId); null for anything else.
+(String, String)? cupMatchEntry(String entry) {
+  if (!entry.startsWith('cupmatch:')) return null;
+  final p = entry.substring(9).split(':');
+  if (p.length != 2 || p[0].isEmpty || p[1].isEmpty) return null;
+  return (p[0], p[1]);
+}
+
+// ------------------------------------------------------------------ rankings (server _cup_rank_points)
+int cupRankPoints({int titles = 0, int runnerUp = 0, int third = 0, int fourth = 0, int cups = 0, int seriesWins = 0}) =>
+    25 * titles + 15 * runnerUp + 10 * third + 6 * fourth + 2 * cups + 3 * seriesWins;
+
 String formatFa(int games) => switch (games) {
       1 => 'تک بازی',
       2 => 'دو بازی (مجموع)',
@@ -190,6 +342,7 @@ String cupSeriesLabel(String mode, int games, int targetWins) => switch (mode) {
       'single' => 'تک‌بازی',
       'aggregate' => 'مجموع گل · ${faDigits(games.toString())} بازی',
       'first_to' => 'اول به ${faDigits(targetWins.toString())} برد · حداکثر ${faDigits(games.toString())} بازی',
+      'two_leg' => 'رفت و برگشت · مجموع گل',
       _ => formatFa(games),
     };
 

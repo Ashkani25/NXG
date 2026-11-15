@@ -43,7 +43,7 @@ MatchCfg cfgFromRoom(Rec room) {
   return MatchCfg(
       field: s.i('field').clamp(0, kFields.length - 1),
       ball: s.i('ball').clamp(0, 35),
-      forms: [0, 0],
+      forms: roomForms(s),
       ai: false,
       aiLvl: 1,
       limit: time > 0 ? 99 : goals,
@@ -51,6 +51,16 @@ MatchCfg cfgFromRoom(Rec room) {
       turnTime: turn,
       vip: [false, false],
       first: 0);
+}
+
+/// Formations of both teams from the room settings ('forms': [team0, team1], written by the server from the
+/// cup lineup); both peers read the same room row, so lockstep stays deterministic. Default [0, 0].
+List<int> roomForms(Rec s) {
+  final f = s.m['forms'];
+  if (f is List && f.length == 2 && f[0] is num && f[1] is num) {
+    return [for (final x in f) (x as num).toInt().clamp(0, kForms.length - 1)];
+  }
+  return [0, 0];
 }
 
 /// Whose pitch and ball an online match uses: the host's room selection for casual/social/tournament rooms,

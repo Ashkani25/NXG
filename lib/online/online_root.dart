@@ -10,6 +10,7 @@ import '../oracle/oracle.dart';
 import '../ui/chrome.dart';
 import '../ui/kit.dart';
 import 'competitive.dart';
+import 'cup_logic.dart' show cupMatchEntry;
 import 'cups.dart';
 import 'link.dart';
 import 'lobby.dart';
@@ -40,6 +41,10 @@ class OnlineRoot extends StatefulWidget {
 class _OnlineRootState extends State<OnlineRoot> {
   late List<_R> stack = widget.entry.startsWith('cup:')
       ? [const _R('tours'), _R('cup', id: widget.entry.substring(4))]
+      : widget.entry.startsWith('cupmatch:')
+          ? [const _R('tours'), _R('cup', id: cupMatchEntry(widget.entry)?.$1)]
+          : widget.entry == 'cupranks'
+              ? [const _R('tours'), const _R('cupranks')]
       : [widget.entry == 'leagues' ? const _R('ranks', tab: 'leagues') : _R(widget.entry)];
   RoomLink? link;
   String? connErr, skip;
@@ -59,12 +64,29 @@ class _OnlineRootState extends State<OnlineRoot> {
     Auth.i.ensure().then((id) {
       if (id == null && mounted) setState(() => connErr = 'اتصال به سرور برقرار نشد');
       if (id != null) _maybeQuick();
+      if (id != null) _maybeCupMatch();
       if (id != null && widget.room != null && !_directDone) {
         _directDone = true;
         enterRoom(widget.room!);
       }
       if (mounted) setState(() {});
     }, onError: (e) => mounted ? setState(() => connErr = errFa(e)) : null);
+  }
+
+  bool _cupMatchDone = false;
+
+  /// v0.7.0 deep link / auto-move: 'cupmatch:<cup>:<match>' -> cup_enter -> straight into the cup room.
+  void _maybeCupMatch() {
+    final e = cupMatchEntry(widget.entry);
+    if (e == null || _cupMatchDone) return;
+    _cupMatchDone = true;
+    rpc('cup_enter', {'p_match': e.$2}).then((r) => enterRoom(Rec.of(r).rec('room')), onError: (err) => toast(cupErr(err), 'err'));
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    AppNavCup.openRanks = () => push(const _R('cupranks'));
   }
 
   void _maybeQuick() {
@@ -228,6 +250,7 @@ class _OnlineRootState extends State<OnlineRoot> {
       'result' when isCupRoom(l?.room) => OnlineResultScreen(o: t.o!, before: t.before, onLobby: () => _set([...stack.sublist(0, stack.length - 1), const _R('lobby')]), onLeave: leaveRoom),
       'result' => _withRematch(l, OnlineResultScreen(o: t.o!, before: t.before, onLobby: () => _set([...stack.sublist(0, stack.length - 1), const _R('lobby')]), onLeave: leaveRoom)),
       'tours' => CupsScreen(onBack: back, onOpen: (id) => push(_R('cup', id: id))),
+      'cupranks' => CupRankingScreen(onBack: back),
       'cup' => CupScreen(key: ValueKey('c${t.id}'), id: t.id!, onBack: back, onRoom: enterRoom),
       'tour' => TourScreen(key: ValueKey('t${t.id}'), id: t.id!, onBack: back, onRoom: enterRoom),
       'ranks' => RanksScreen(onBack: back, tab: t.tab ?? 'top'),

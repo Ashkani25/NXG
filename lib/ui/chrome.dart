@@ -119,7 +119,19 @@ Future<T?> showSheet<T>(BuildContext context, {required String title, String? en
               ),
             ]),
           ),
-          Expanded(child: Padding(padding: EdgeInsets.only(bottom: ins.bottom), child: child(ctx))),
+          // v0.7.0: sheet content glides up and fades in after the sheet lands
+          Expanded(
+            child: Padding(
+              padding: EdgeInsets.only(bottom: ins.bottom),
+              child: TweenAnimationBuilder<double>(
+                tween: Tween(begin: 0, end: 1),
+                duration: const Duration(milliseconds: 420),
+                curve: Curves.easeOutCubic,
+                builder: (_, v, ch) => Opacity(opacity: v, child: Transform.translate(offset: Offset(0, (1 - v) * 24), child: ch)),
+                child: child(ctx),
+              ),
+            ),
+          ),
         ]),
       );
     },

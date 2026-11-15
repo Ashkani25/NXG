@@ -101,7 +101,7 @@ class Press extends StatefulWidget {
   final VoidCallback? onLong;
   final bool sound, haptic, disabled;
   final double scaleTo;
-  const Press({super.key, required this.child, this.onTap, this.onLong, this.sound = true, this.haptic = true, this.disabled = false, this.scaleTo = .97});
+  const Press({super.key, required this.child, this.onTap, this.onLong, this.sound = true, this.haptic = true, this.disabled = false, this.scaleTo = .95});
   @override
   State<Press> createState() => _PressState();
 }
@@ -126,8 +126,9 @@ class _PressState extends State<Press> {
             },
       child: AnimatedScale(
         scale: _down ? widget.scaleTo : 1,
-        duration: Duration(milliseconds: _down ? 95 : 190),
-        curve: Curves.easeOutCubic,
+        // v0.7.0: quick press-in, soft springy release (easeOutBack: one gentle overshoot, no elastic wobble)
+        duration: Duration(milliseconds: _down ? 90 : 260),
+        curve: _down ? Curves.easeOutCubic : Curves.easeOutBack,
         child: Opacity(opacity: widget.disabled ? .45 : 1, child: widget.child),
       ),
     );
@@ -395,7 +396,14 @@ class ListRow extends StatelessWidget {
         if (right != null) right!,
       ]),
     );
-    return onTap != null ? Press(onTap: onTap, scaleTo: .98, child: body) : body;
+    final row = onTap != null ? Press(onTap: onTap, scaleTo: .97, child: body) : body;
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: 1),
+      duration: const Duration(milliseconds: 360),
+      curve: Curves.easeOutCubic,
+      child: row,
+      builder: (_, v, ch) => Opacity(opacity: v, child: Transform.translate(offset: Offset(0, (1 - v) * 10), child: ch)),
+    );
   }
 }
 
@@ -519,6 +527,42 @@ class _SpinState extends State<Spin> with SingleTickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) => RepaintBoundary(child: RotationTransition(turns: widget.reverse ? ReverseAnimation(c) : c, child: widget.child));
+}
+
+/// v0.7.0 pop-in: scales up from [from] with a soft overshoot and fades in (dialogs, badges, icons).
+class Pop extends StatelessWidget {
+  final Widget child;
+  final double from;
+  final int delayMs;
+  const Pop({super.key, required this.child, this.from = .55, this.delayMs = 0});
+  @override
+  Widget build(BuildContext context) => TweenAnimationBuilder<double>(
+        tween: Tween(begin: 0, end: 1),
+        duration: Duration(milliseconds: 460 + delayMs),
+        curve: Interval(delayMs / (460 + delayMs), 1, curve: Curves.easeOutBack),
+        child: child,
+        builder: (_, v, ch) => Opacity(opacity: v.clamp(0, 1), child: Transform.scale(scale: from + (1 - from) * v, child: ch)),
+      );
+}
+
+/// v0.7.0 icon badge: a material icon on a glowing gradient disc (cleaner, more legible than a flat glyph).
+class NxIcon extends StatelessWidget {
+  final IconData icon;
+  final Color color;
+  final double size;
+  const NxIcon(this.icon, {super.key, this.color = C.cyan, this.size = 34});
+  @override
+  Widget build(BuildContext context) => Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          gradient: RadialGradient(center: const Alignment(-.3, -.4), radius: .95, colors: [Color.lerp(color, Colors.white, .35)!, color, Color.lerp(color, Colors.black, .55)!], stops: const [0, .55, 1]),
+          border: Border.all(color: Colors.white.withValues(alpha: .35), width: 1),
+          boxShadow: glow(color, size * .45, .45),
+        ),
+        child: Icon(icon, size: size * .56, color: Colors.white, shadows: const [Shadow(color: Color(0x66000000), blurRadius: 4, offset: Offset(0, 1))]),
+      );
 }
 
 /// Fade+slide-up entrance, staggered by index.

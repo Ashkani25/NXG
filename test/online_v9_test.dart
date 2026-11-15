@@ -30,18 +30,21 @@ class _Port implements NetPort {
 Rec _p(String u, int team, bool ready) => Rec({'user_id': u, 'role': 'player', 'team': team, 'slot': 0, 'ready': ready});
 
 void main() {
-  test('retuned physics uses protocol version 11', () => expect(kProtoVersion, 11));
+  test('v0.7.0 (v0.6.4 physics world + Flame + cup lineup) uses protocol version 12', () => expect(kProtoVersion, 12));
 
   group('host pitch/ball', () {
-    test('custom room: room pitch, host ball', () {
-      final r = Rec({'kind': 'casual', 'settings': {'field': 3, 'ball': 0}});
-      expect(hostFieldBall(r, 7, 12), (3, 12));
+    test('custom room: the room host picks pitch and ball for both sides', () {
+      expect(hostFieldBall(Rec({'kind': 'casual', 'settings': {'field': 3, 'ball': 4}}), 7, 12), (3, 4));
+      expect(hostFieldBall(Rec({'kind': 'casual', 'settings': {'field': 3}}), 7, 12), (3, 12)); // no ball set -> host's equipped
     });
     test('matchmade room: host equipped pitch and ball (server default ignored)', () {
-      for (final k in ['quick', 'arena', 'duel', 'tournament']) {
+      for (final k in ['quick', 'arena', 'duel']) {
         final r = Rec({'kind': k, 'settings': {'field': 29}});
         expect(hostFieldBall(r, 5, 9), (5, 9), reason: k);
       }
+    });
+    test('cup (tournament) room: the lineup pitch/ball saved by cup_ready apply to both', () {
+      expect(hostFieldBall(Rec({'kind': 'tournament', 'settings': {'field': 29, 'ball': 7}}), 5, 9), (29, 7));
     });
     test('custom room without a pitch setting -> host equipped pitch; values clamped', () {
       expect(hostFieldBall(Rec({'kind': 'social', 'settings': {}}), 4, 2), (4, 2));
