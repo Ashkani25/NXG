@@ -1,11 +1,12 @@
 name: NEXORA Quick Check
 on:
   push:
-    branches: ['check-redesign-*']
+    branches: ['check-redesign-*', 'nexora-online-redesign']
+  workflow_dispatch:
 jobs:
   check:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
@@ -18,15 +19,35 @@ jobs:
         run: |
           set +e
           flutter analyze --no-fatal-infos --no-fatal-warnings > analyze.txt 2>&1
+          echo "ANALYZE_RC=$?" >> $GITHUB_ENV
           echo "=====ANALYZE-BEGIN====="
           grep -E "(error|warning) •" analyze.txt
+          tail -2 analyze.txt
           echo "=====ANALYZE-END====="
           exit 0
       - name: Test
         run: |
           set +e
           flutter test --reporter expanded > test.txt 2>&1
+          echo "TEST_RC=$?" >> $GITHUB_ENV
           echo "=====TEST-BEGIN====="
           grep -E "\[E\]|Error:|error:|Expected:|Actual:|FAILED|Some tests failed|All tests passed|Failed to load" test.txt | head -300
+          tail -3 test.txt
           echo "=====TEST-END====="
           exit 0
+      - name: Upload logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: check-logs
+          path: |
+            analyze.txt
+            test.txt
+          retention-days: 14
+      # The nexora-online-redesign branch must be green: analyzer errors or failing tests fail the run.
+      # check-redesign-* branches keep the old report-only behaviour.
+      - name: Gate
+        if: github.ref == 'refs/heads/nexora-online-redesign'
+        run: |
+          echo "analyze rc=$ANALYZE_RC test rc=$TEST_RC"
+          test "$ANALYZE_RC" = "0" && test "$TEST_RC" = "0"
