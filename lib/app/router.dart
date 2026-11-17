@@ -4,7 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../core/ui2/page_turn.dart';
 
 import '../core/profile/profile_service.dart';
-import '../core/storage/local_store.dart';
+import '../core/profile/world_visits.dart';
 import '../features/admin/admin_access.dart';
 import '../features/admin/admin_page.dart';
 import '../features/admin/force_password_page.dart';
@@ -21,19 +21,15 @@ import '../worlds/auth/auth_page.dart';
 import '../worlds/hub/hub_page.dart';
 import '../worlds/intro/intro_video_page.dart';
 import '../worlds/nexora_exchange/exchange_page.dart';
-import '../worlds/nova_gallery/nova_gallery_page.dart';
 import '../worlds/onboarding/onboarding_page.dart';
 import '../worlds/oracle_core/oracle_core_page.dart';
 import '../worlds/oracle_core/persona/oracle_config_page.dart';
-import '../worlds/orbit_network/orbit_network_page.dart';
 import '../worlds/orbit_network/ui/orbit_call_page.dart';
 import '../worlds/personal_orbit/personal_orbit_page.dart';
 import '../worlds/settings/account_page.dart';
 import '../worlds/settings/settings_page.dart';
 import '../worlds/rooms/rooms_page.dart';
 import '../worlds/social_hub/social_hub_page.dart';
-import '../worlds/personal_orbit/rewards_page.dart';
-import '../worlds/social_station/social_station_page.dart';
 import '../core/online/online_service.dart';
 import '../core/settings/app_settings.dart';
 
@@ -83,6 +79,10 @@ GoRouter buildRouter(WidgetRef ref) {
       if (u.scheme == 'nexora' && u.host == 't') {
         return '/tournaments/join?code=${u.pathSegments.isNotEmpty ? u.pathSegments.first : ''}';
       }
+      // UI audit M1: every feature has one home. Old entry points redirect there (deep links / ORACLE intents keep
+      // working): Rewards -> Profile › Rewards tab; the three social worlds -> the Social tab with that sub-tab.
+      final String? merged = legacyRedirect(u);
+      if (merged != null) return merged;
       final RegExpMatch? m = RegExp(r'^/([A-HJ-NP-Za-hj-np-z2-9]{8})$').firstMatch(u.path);
       if (m != null && u.path != '/settings' && u.path != '/intro') {
         return '/tournaments/join?code=${m.group(1)!.toUpperCase()}';
@@ -101,8 +101,11 @@ GoRouter buildRouter(WidgetRef ref) {
       GoRoute(path: '/onboarding', pageBuilder: (context, state) => _fade(state, const OnboardingPage())),
       GoRoute(path: '/hub', pageBuilder: (context, state) => _fade(state, const HubPage())),
       GoRoute(path: '/rooms', pageBuilder: (context, state) => _warp(state, const RoomsPage())),
-      GoRoute(path: '/social', pageBuilder: (context, state) => _warp(state, const SocialHubPage())),
-      GoRoute(path: '/rewards', pageBuilder: (context, state) => _warp(state, const RewardsPage())),
+      GoRoute(
+        path: '/social',
+        pageBuilder: (context, state) =>
+            _warp(state, SocialHubPage(initial: SocialHubPage.tabIndex(state.uri.queryParameters['tab']))),
+      ),
       GoRoute(path: '/settings', builder: (context, state) => const SettingsPage()),
       GoRoute(path: '/admin/oracle', builder: (context, state) => const OracleConfigPage()),
       GoRoute(path: '/admin', builder: (context, state) => const AdminPage()),
@@ -119,7 +122,7 @@ GoRouter buildRouter(WidgetRef ref) {
         path: '/world/:id',
         pageBuilder: (context, state) {
           final id = state.pathParameters['id'] ?? '';
-          return _warp(state, _WorldVisit(id: id, child: _worldPage(id)));
+          return _warp(state, _WorldVisit(id: id, child: _worldPage(id, tab: state.uri.queryParameters['tab'])));
         },
       ),
       GoRoute(
@@ -183,20 +186,29 @@ GoRouter buildRouter(WidgetRef ref) {
   );
 }
 
-Widget _worldPage(String id) {
+/// Old routes that now live inside one of the five tabs (see docs/UI_AUDIT.md). Returns null when [u] is current.
+String? legacyRedirect(Uri u) {
+  switch (u.path) {
+    case '/rewards':
+      return '/world/personal_orbit?tab=rewards';
+    case '/world/nova_gallery':
+      return '/social?tab=feed';
+    case '/world/orbit_network':
+      return '/social?tab=chats';
+    case '/world/social_station':
+      return '/social?tab=communities';
+  }
+  return null;
+}
+
+Widget _worldPage(String id, {String? tab}) {
   switch (id) {
-    case 'nova_gallery':
-      return const NovaGalleryPage();
-    case 'orbit_network':
-      return const OrbitNetworkPage();
     case 'nexora_arcade':
       return const ArcadePage();
     case 'oracle_core':
       return const OracleCorePage();
     case 'personal_orbit':
-      return const PersonalOrbitPage();
-    case 'social_station':
-      return const SocialStationPage();
+      return PersonalOrbitPage(initialTab: tab);
     case 'nexora_exchange':
       return const ExchangePage();
     default:
@@ -238,14 +250,7 @@ class _WorldVisitState extends ConsumerState<_WorldVisit> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      final store = LocalStore.instance;
-      final visited = (store.getJsonList('hub.visited') ?? const []).map((e) => '$e').toSet();
-      if (visited.add(widget.id)) {
-        store.setJson('hub.visited', visited.toList());
-        final p = ref.read(profileProvider);
-        p.bump('worlds.visited');
-        p.award('world.first_visit.${widget.id}', xp: 20, coins: 10);
-      }
+      recordWorldVisit(ref.read(profileProvider), widget.id);
     });
   }
 

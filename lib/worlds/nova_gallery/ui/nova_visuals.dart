@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/profile/profile_service.dart';
 import '../../../core/settings/app_settings.dart';
 import '../../../core/theme/nx_theme.dart';
+import '../../../core/widgets/nx_states.dart';
 import '../../../core/widgets/nx_widgets.dart';
 import '../models/art_asset.dart';
 import '../models/nova_models.dart';
@@ -354,7 +355,7 @@ class _MotionOrbsPainter extends CustomPainter {
   bool shouldRepaint(covariant _MotionOrbsPainter oldDelegate) => oldDelegate.t != t || oldDelegate.count != count;
 }
 
-/// Empty state with ORACLE giving a hint.
+/// Empty state with ORACLE giving a hint — same layout as every list page ([NxEmptyState]).
 class NovaEmptyState extends StatelessWidget {
   const NovaEmptyState({super.key, required this.fa, required this.en, this.action, this.pose = 'present'});
   final String fa;
@@ -363,20 +364,9 @@ class NovaEmptyState extends StatelessWidget {
   final String pose;
 
   @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(NxSpace.lg),
-        child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-          OracleAvatar(pose: pose, size: 96),
-          const SizedBox(height: 12),
-          GlassPanel(
-            child: Text(context.tx(fa, en),
-                textAlign: TextAlign.center, style: const TextStyle(color: NxColors.iceWhite, height: 1.5)),
-          ),
-          if (action != null) ...<Widget>[const SizedBox(height: 14), action!],
-        ]),
-      ),
-    );
-  }
+  Widget build(BuildContext context) => NxEmptyState(
+        leading: OracleAvatar(pose: pose, size: 84),
+        message: context.tx(fa, en),
+        action: action,
+      );
 }

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/settings/app_settings.dart';
 import '../../core/theme/nx_theme.dart';
+import '../../core/ui2/nx2_widgets.dart';
 import '../../core/widgets/nx_widgets.dart';
 import 'models/orbit_models.dart';
 import 'state/orbit_controller.dart';
@@ -104,26 +105,6 @@ class _OrbitNetworkPageState extends ConsumerState<OrbitNetworkPage>
     final NxThemeColors visual = NxThemeColors.of(context);
     final pal = WorldPalette.orbit;
     final int unread = ctrl.totalUnread;
-    final List<String> sectionFa = <String>[
-      'مدار گفتگوها',
-      'تماس‌های واقعی',
-      'مخاطبان'
-    ];
-    final List<String> sectionEn = <String>[
-      'Your conversations',
-      'Real calls',
-      'Contacts'
-    ];
-    final List<String> subtitleFa = <String>[
-      'پیام‌ها و یادداشت‌هایت را در یک جا نگه دار.',
-      'تماس‌ها فقط با اتصال آنلاین برقرار می‌شوند.',
-      'شناسه و دوستانت را از اینجا مدیریت کن.',
-    ];
-    final List<String> subtitleEn = <String>[
-      'Keep messages and notes together in one place.',
-      'Calls connect only while the online service is available.',
-      'Manage your explorer ID and friends here.',
-    ];
     return NxWorldScaffold(
       title: 'ORBIT NETWORK',
       palette: pal,
@@ -166,66 +147,16 @@ class _OrbitNetworkPageState extends ConsumerState<OrbitNetworkPage>
               child: const Icon(Icons.add_comment_rounded),
             )
           : null,
-      bottomNavigationBar: NavigationBar(
-        backgroundColor: visual.surfaceRaised.withValues(alpha: 0.98),
-        indicatorColor: visual.accent.withValues(alpha: 0.22),
-        selectedIndex: _tab,
-        height: 66,
-        labelBehavior: NavigationDestinationLabelBehavior.onlyShowSelected,
-        onDestinationSelected: (int i) => setState(() => _tab = i),
-        destinations: <Widget>[
-          NavigationDestination(
-            icon: Badge(
-              isLabelVisible: unread > 0,
-              label: Text('$unread'),
-              child: const Icon(Icons.chat_bubble_rounded),
-            ),
-            label: context.tx('گفت‌وگوها', 'Chats'),
-          ),
-          NavigationDestination(
-              icon: const Icon(Icons.call_rounded),
-              label: context.tx('تماس‌ها', 'Calls')),
-          NavigationDestination(
-              icon: const Icon(Icons.contacts_rounded),
-              label: context.tx('مخاطبان', 'Contacts')),
-        ],
-      ),
       body: Column(children: <Widget>[
-        Padding(
-          padding: const EdgeInsets.fromLTRB(
-              NxSpace.md, kToolbarHeight + NxSpace.xs, NxSpace.md, NxSpace.sm),
-          child: GlassPanel(
-            padding: const EdgeInsets.symmetric(
-                horizontal: NxSpace.md, vertical: NxSpace.sm),
-            radius: NxRadius.md,
-            child: Row(children: <Widget>[
-              Container(
-                width: 4,
-                height: 38,
-                decoration: BoxDecoration(
-                    color: visual.accent,
-                    borderRadius: BorderRadius.circular(4)),
-              ),
-              const SizedBox(width: NxSpace.sm),
-              Expanded(
-                child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: <Widget>[
-                      Text(context.tx(sectionFa[_tab], sectionEn[_tab]),
-                          style: TextStyle(
-                              color: visual.text,
-                              fontSize: 16,
-                              fontWeight: FontWeight.w900)),
-                      const SizedBox(height: 2),
-                      Text(context.tx(subtitleFa[_tab], subtitleEn[_tab]),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(color: visual.muted, fontSize: 12)),
-                    ]),
-              ),
-              Icon(Icons.radar_rounded, color: visual.accent, size: 20),
-            ]),
-          ),
+        // Sections at the top (the old second bottom bar stacked above the dock). See docs/UI_AUDIT.md.
+        Nx2SectionBar(
+          index: _tab,
+          onChanged: (int i) => setState(() => _tab = i),
+          sections: <Nx2Section>[
+            Nx2Section(Icons.chat_bubble_rounded, context.tx('گفت‌وگوها', 'Chats'), badge: unread),
+            Nx2Section(Icons.call_rounded, context.tx('تماس‌ها', 'Calls')),
+            Nx2Section(Icons.contacts_rounded, context.tx('مخاطبان و دوستان', 'Contacts & friends')),
+          ],
         ),
         Expanded(
           child: AnimatedSwitcher(

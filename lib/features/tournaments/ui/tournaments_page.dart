@@ -10,6 +10,7 @@ import '../../../core/settings/app_settings.dart';
 import '../../../core/theme/nx_theme.dart';
 import '../../../core/ui2/nx2_assets.dart';
 import '../../../core/ui2/nx2_widgets.dart';
+import '../../../core/widgets/nx_states.dart';
 import '../../../core/widgets/nx_widgets.dart';
 import '../../../games/game_registry.dart';
 import '../data/models.dart';
@@ -358,7 +359,7 @@ class _TournamentsPageState extends ConsumerState<TournamentsPage>
                 if (_myMatches.isNotEmpty) _nextMatchBanner(context),
                 Expanded(
                   child: _loading && _all.isEmpty
-                      ? const Center(child: CircularProgressIndicator())
+                      ? const NxLoadingState()
                       : _error != null && _all.isEmpty
                           ? _errorView(context)
                           : TabBarView(children: <Widget>[
@@ -373,16 +374,9 @@ class _TournamentsPageState extends ConsumerState<TournamentsPage>
 
   int _count(TTab t) => _forTab(t).length;
 
-  Widget _errorView(BuildContext context) => Center(
-        child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-          const Icon(Icons.cloud_off_rounded,
-              size: 46, color: NxColors.textDim),
-          const SizedBox(height: 8),
-          Text(context.tx('اتصال برقرار نشد', 'Could not connect')),
-          TextButton(
-              onPressed: _load,
-              child: Text(context.tx('تلاش دوباره', 'Retry'))),
-        ]),
+  Widget _errorView(BuildContext context) => NxErrorState(
+        message: context.tx('اتصال برقرار نشد', 'Could not connect'),
+        onRetry: _load,
       );
 
   Widget _filters(BuildContext context) {
@@ -507,13 +501,10 @@ class _TournamentsPageState extends ConsumerState<TournamentsPage>
       onRefresh: _load,
       child: items.isEmpty
           ? ListView(children: <Widget>[
-              const SizedBox(height: 80),
-              const Icon(Icons.emoji_events_outlined,
-                  size: 56, color: NxColors.textDim),
-              const SizedBox(height: 10),
-              Center(
-                child: Text(context.tx('چیزی اینجا نیست', 'Nothing here yet'),
-                    style: const TextStyle(color: NxColors.textDim)),
+              const SizedBox(height: 40),
+              NxEmptyState(
+                icon: Icons.emoji_events_outlined,
+                message: context.tx('چیزی اینجا نیست', 'Nothing here yet'),
               ),
             ])
           : ListView.builder(

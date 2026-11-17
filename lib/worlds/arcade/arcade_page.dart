@@ -20,32 +20,13 @@ class ArcadePage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final p = ref.watch(profileProvider);
-    final visual = NxThemeColors.of(context);
-    return DefaultTabController(
-      length: 2,
-      child: NxWorldScaffold(
-        title: context.tx('آرکید NEXORA', 'NEXORA ARCADE'),
-        palette: WorldPalette.arcade,
-        dock: Nx2Tab.games,
-        body: Column(children: [
-          TabBar(
-            indicatorColor: visual.accent,
-            labelColor: visual.accent,
-            unselectedLabelColor: visual.muted,
-            dividerColor: Colors.transparent,
-            tabs: [
-              Tab(text: context.tx('بازی‌ها', 'Games')),
-              Tab(text: context.tx('رکوردها', 'Records')),
-            ],
-          ),
-          Expanded(
-            child: TabBarView(children: [
-              _GamesGrid(profile: p),
-              _Records(profile: p),
-            ]),
-          ),
-        ]),
-      ),
+    // One grid of games (each tile already shows its own record). Rankings, tournaments and per-game stats live in
+    // their single homes (Play tab, Profile → Stats); see docs/UI_AUDIT.md.
+    return NxWorldScaffold(
+      title: context.tx('همه‌ی بازی‌ها', 'ALL GAMES'),
+      palette: WorldPalette.arcade,
+      dock: Nx2Tab.games,
+      body: _GamesGrid(profile: p),
     );
   }
 }
@@ -169,56 +150,7 @@ class _GamesGridState extends State<_GamesGrid> {
           ),
         ),
       ),
-      SliverToBoxAdapter(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(12, 0, 12, 10),
-          child: Nx2Panel(
-            gold: true,
-            onTap: () => context.push('/tournaments'),
-            padding: const EdgeInsets.all(12),
-            child: Row(children: [
-              Image.asset(Nx2Assets.badgesTrophyGold,
-                  width: 48, height: 58, cacheWidth: 140),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(context.tx('تورنمنت‌های آنلاین', 'Online tournaments'),
-                          style: const TextStyle(
-                              fontWeight: FontWeight.w900, color: Nx2.gold)),
-                      Text(
-                          context.tx('حذفی، لیگ، گروهی و سوئیسی با جایزه',
-                              'Knockout, league, groups and swiss with prizes'),
-                          style:
-                              const TextStyle(color: Nx2.muted, fontSize: 12)),
-                    ]),
-              ),
-              const Icon(Icons.chevron_right_rounded, color: Nx2.gold),
-            ]),
-          ),
-        ),
-      ),
-      SliverToBoxAdapter(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(12, 0, 12, 20),
-          child: Nx2Panel(
-            onTap: () => context.push('/world/social_station'),
-            padding: const EdgeInsets.all(12),
-            child: Row(children: [
-              Image.asset(Nx2Assets.badgesMedalCrown,
-                  width: 44, height: 44, cacheWidth: 130),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(context.tx(
-                    'مسابقه و لیگ با دوستان در ایستگاه اجتماعی',
-                    'Tournaments & leagues with friends in Social Station')),
-              ),
-              const Icon(Icons.chevron_right_rounded),
-            ]),
-          ),
-        ),
-      ),
+      const SliverToBoxAdapter(child: SizedBox(height: 20)),
     ]);
   }
 }
@@ -311,68 +243,3 @@ class _GameTile extends StatelessWidget {
   }
 }
 
-class _Records extends StatelessWidget {
-  const _Records({required this.profile});
-  final ProfileService profile;
-
-  @override
-  Widget build(BuildContext context) {
-    return ListView(
-      padding: const EdgeInsets.all(NxSpace.md),
-      children: [
-        Nx2Button(
-          onTap: () => context.push('/leaderboard'),
-          icon: Icons.leaderboard_rounded,
-          kind: Nx2ButtonKind.cyan,
-          label: context.tx('رتبه‌بندی جهانی', 'Global rankings'),
-        ),
-        const SizedBox(height: NxSpace.md),
-        for (final g in kGames)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 10),
-            child: GlassPanel(
-              child: Row(children: [
-                Image.asset(AppAssets.pedestal(g.id),
-                    width: 46, cacheWidth: 140),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(context.tx(g.nameFa, g.nameEn),
-                            style: TextStyle(
-                                fontWeight: FontWeight.w800, color: g.accent)),
-                        Builder(builder: (context) {
-                          final s = profile.stats[g.id];
-                          if (s == null) {
-                            return Text(
-                                context.tx(
-                                    'هنوز بازی نکرده‌ای', 'Not played yet'),
-                                style: const TextStyle(
-                                    color: NxColors.textDim, fontSize: 12));
-                          }
-                          final rate = s.played == 0
-                              ? 0
-                              : (s.won * 100 / s.played).round();
-                          return Text(
-                            context.tx(
-                                'بازی ${s.played} · برد ${s.won} · باخت ${s.lost} · مساوی ${s.draw} · ٪$rate',
-                                'Played ${s.played} · W ${s.won} · L ${s.lost} · D ${s.draw} · $rate%'),
-                            style: const TextStyle(
-                                color: NxColors.textDim, fontSize: 12),
-                          );
-                        }),
-                      ]),
-                ),
-                if ((profile.stats[g.id]?.best ?? 0) > 0)
-                  NxPill(
-                      label:
-                          '${context.tx('بهترین', 'Best')} ${profile.stats[g.id]!.best}',
-                      color: NxColors.gold),
-              ]),
-            ),
-          ),
-      ],
-    );
-  }
-}

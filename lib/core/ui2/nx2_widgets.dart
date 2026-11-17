@@ -697,17 +697,16 @@ class Nx2SectionHeader extends StatelessWidget {
   }
 }
 
-/// Destinations of the bottom dock (+ home/profile, reached from the drawer and the top bar).
-enum Nx2Tab { home, social, oracle, games, shop, tournaments, rewards, profile }
+/// The five bottom-nav destinations (UI audit M1: one clear nav, max 5 tabs).
+/// Home · Social · PLAY (raised centre) · Shop · Profile. ORACLE, Tournaments, Rankings and Rewards live inside these
+/// (see docs/UI_AUDIT.md) instead of having their own dock buttons.
+enum Nx2Tab { home, social, games, shop, profile }
 
 String nx2TabPath(Nx2Tab t) => switch (t) {
       Nx2Tab.home => '/hub',
       Nx2Tab.social => '/social',
-      Nx2Tab.oracle => '/oracle',
       Nx2Tab.games => '/rooms',
       Nx2Tab.shop => '/world/nexora_exchange',
-      Nx2Tab.tournaments => '/tournaments',
-      Nx2Tab.rewards => '/rewards',
       Nx2Tab.profile => '/world/personal_orbit',
     };
 
@@ -724,8 +723,8 @@ void nx2GoTab(BuildContext context, Nx2Tab tab, Nx2Tab? current) {
   }
 }
 
-/// Bottom dock: three balanced destinations on each side of the raised GAME action.
-/// Keeping six equal cells prevents long labels from colliding on narrow phones.
+/// Bottom dock: two destinations on each side of the raised PLAY action (5 tabs total).
+/// Static art + plain icons, isolated in a RepaintBoundary so page animations never repaint it.
 class Nx2Dock extends StatelessWidget {
   const Nx2Dock({super.key, required this.current});
   final Nx2Tab? current;
@@ -743,24 +742,18 @@ class Nx2Dock extends StatelessWidget {
           child: Semantics(
             selected: on,
             button: true,
+            excludeSemantics: true,
             label: context.tx(fa, en),
             child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-              AnimatedContainer(
-                duration: const Duration(milliseconds: 220),
+              Container(
                 padding: const EdgeInsets.all(5),
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  boxShadow: on
-                      ? <BoxShadow>[BoxShadow(color: Nx2.cyan.withValues(alpha: 0.55), blurRadius: 16)]
-                      : const <BoxShadow>[],
-                ),
-                child: ShaderMask(
-                  shaderCallback: (Rect r) => (on
-                          ? const LinearGradient(colors: <Color>[Nx2.cyan, Nx2.magenta])
-                          : const LinearGradient(colors: <Color>[Color(0xFFB9A8E8), Color(0xFF8C7BC4)]))
-                      .createShader(r),
-                  child: Icon(icon, size: 20, color: Colors.white),
-                ),
+                decoration: on
+                    ? BoxDecoration(
+                        shape: BoxShape.circle,
+                        boxShadow: <BoxShadow>[BoxShadow(color: Nx2.cyan.withValues(alpha: 0.45), blurRadius: 12)],
+                      )
+                    : null,
+                child: Icon(icon, size: 21, color: on ? Nx2.cyan : const Color(0xFFB9A8E8)),
               ),
               SizedBox(
                 height: 16,
@@ -785,6 +778,7 @@ class Nx2Dock extends StatelessWidget {
     final bool gameOn = current == Nx2Tab.games;
     return OracleTourTarget(
       id: 'dock',
+      child: RepaintBoundary(
       child: SizedBox(
       height: 78 + bottom + 18,
       child: Stack(clipBehavior: Clip.none, children: <Widget>[
@@ -810,16 +804,14 @@ class Nx2Dock extends StatelessWidget {
                 child: Row(children: <Widget>[
                   Expanded(
                     child: Row(children: <Widget>[
-                      item(Nx2Tab.social, Icons.perm_media_rounded, 'چت و رسانه', 'Chat+Media'),
-                      item(Nx2Tab.oracle, Icons.auto_awesome_rounded, 'اوراکل', 'ORACLE'),
-                      item(Nx2Tab.tournaments, Icons.emoji_events_rounded, 'تورنمنت', 'Tournaments'),
+                      item(Nx2Tab.home, Icons.home_rounded, 'خانه', 'Home'),
+                      item(Nx2Tab.social, Icons.forum_rounded, 'اجتماعی', 'Social'),
                     ]),
                   ),
                   const SizedBox(width: center - 2),
                   Expanded(
                     child: Row(children: <Widget>[
                       item(Nx2Tab.shop, Icons.storefront_rounded, 'فروشگاه', 'Shop'),
-                      item(Nx2Tab.rewards, Icons.card_giftcard_rounded, 'جایزه و پک', 'Rewards'),
                       item(Nx2Tab.profile, Icons.person_rounded, 'پروفایل', 'Profile'),
                     ]),
                   ),
@@ -839,7 +831,9 @@ class Nx2Dock extends StatelessWidget {
               onTap: () => nx2GoTab(context, Nx2Tab.games, current),
               child: Semantics(
                 button: true,
-                label: context.tx('بازی‌ها', 'GAMES'),
+                selected: gameOn,
+                excludeSemantics: true,
+                label: context.tx('بازی', 'PLAY'),
                 child: SizedBox(
                   width: center,
                   height: center,
@@ -860,7 +854,7 @@ class Nx2Dock extends StatelessWidget {
                     Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
                       const Icon(Icons.sports_esports_rounded, size: 24, color: Colors.white,
                           shadows: <Shadow>[Shadow(color: Nx2.cyan, blurRadius: 12)]),
-                      Text(context.tx('بازی', 'GAME'),
+                      Text(context.tx('بازی', 'PLAY'),
                           style: const TextStyle(
                               fontSize: 9, fontWeight: FontWeight.w900, letterSpacing: 0.7, color: Colors.white)),
                     ]),
@@ -872,6 +866,7 @@ class Nx2Dock extends StatelessWidget {
           ),
         ),
       ]),
+    ),
     ),
     );
   }
@@ -1019,4 +1014,85 @@ class Nx2SegmentTabs extends StatelessWidget {
       ),
     );
   }
+}
+
+/// One section entry of [Nx2SectionBar].
+class Nx2Section {
+  const Nx2Section(this.icon, this.label, {this.badge = 0});
+  final IconData icon;
+  final String label;
+
+  /// Unread count shown as a small dot/number (0 = none).
+  final int badge;
+}
+
+/// Compact, scrollable section switcher shown at the top of a page (replaces the second bottom navigation bars
+/// that used to stack above the dock). Pills only, no blur; RTL-aware through the ListView direction.
+class Nx2SectionBar extends StatelessWidget {
+  const Nx2SectionBar({super.key, required this.sections, required this.index, required this.onChanged});
+  final List<Nx2Section> sections;
+  final int index;
+  final ValueChanged<int> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 44,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+        itemCount: sections.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 6),
+        itemBuilder: (BuildContext context, int i) {
+          final Nx2Section s = sections[i];
+          final bool on = i == index;
+          return Semantics(
+            button: true,
+            selected: on,
+            label: s.badge > 0 ? '${s.label} (${s.badge})' : s.label,
+            excludeSemantics: true,
+            child: GestureDetector(
+              onTap: () => onChanged(i),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(18),
+                  color: on ? const Color(0xFF5B2BD6) : const Color(0xB3140A36),
+                  border: Border.all(color: on ? Nx2.cyan : Nx2.violet.withValues(alpha: 0.45)),
+                ),
+                child: Row(mainAxisSize: MainAxisSize.min, children: <Widget>[
+                  Icon(s.icon, size: 16, color: on ? Colors.white : Nx2.muted),
+                  const SizedBox(width: 5),
+                  Text(s.label,
+                      style: TextStyle(
+                          fontSize: 12.5, fontWeight: FontWeight.w800, color: on ? Colors.white : Nx2.muted)),
+                  if (s.badge > 0) ...<Widget>[
+                    const SizedBox(width: 5),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                      decoration: BoxDecoration(color: Nx2.danger, borderRadius: BorderRadius.circular(8)),
+                      child: Text(s.badge > 99 ? '99+' : '${s.badge}',
+                          style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.white)),
+                    ),
+                  ],
+                ]),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+/// Lets a host (the Social tab) put its own switcher right under the top bar of the page it embeds:
+/// [NxWorldScaffold] shows [nav] above its body when one is provided.
+class NxSubNav extends InheritedWidget {
+  const NxSubNav({super.key, required this.nav, required super.child});
+  final Widget nav;
+
+  static Widget? maybeOf(BuildContext context) => context.dependOnInheritedWidgetOfExactType<NxSubNav>()?.nav;
+
+  @override
+  bool updateShouldNotify(NxSubNav old) => old.nav != nav;
 }

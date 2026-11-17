@@ -14,7 +14,6 @@ import 'package:nexora/worlds/hub/hub_page.dart';
 import 'package:nexora/worlds/nexora_exchange/exchange_page.dart';
 import 'package:nexora/worlds/oracle_core/oracle_core_page.dart';
 import 'package:nexora/worlds/personal_orbit/personal_orbit_page.dart';
-import 'package:nexora/worlds/personal_orbit/rewards_page.dart';
 import 'package:nexora/worlds/rooms/rooms_page.dart';
 import 'package:nexora/worlds/settings/settings_page.dart';
 import 'package:nexora/worlds/social_hub/social_hub_page.dart';
@@ -34,8 +33,9 @@ void main() {
     'rooms': () => const RoomsPage(),
     'arcade': () => const ArcadePage(),
     'social': () => const SocialHubPage(),
+    'social_chats': () => const SocialHubPage(initial: 1),
+    'social_comm': () => const SocialHubPage(initial: 2),
     'shop': () => const ExchangePage(),
-    'rewards': () => const RewardsPage(),
     'profile': () => const PersonalOrbitPage(),
     'oracle': () => const OracleCorePage(),
     'ranking': () => const LeaderboardPage(),

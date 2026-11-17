@@ -7,17 +7,18 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-const String kShots = '/workspace/work/redesign_shots';
+const String kShots = String.fromEnvironment('SHOTS', defaultValue: 'build/render_shots');
 final GlobalKey kShotKey = GlobalKey();
 bool _fontsLoaded = false;
 
 Future<void> loadFonts() async {
   if (_fontsLoaded) return;
   _fontsLoaded = true;
-  const String sdk = '/workspace/work/flutter_sdk/bin/cache/artifacts/material_fonts';
+  final String sdk = '${Platform.environment['FLUTTER_ROOT'] ?? ''}/bin/cache/artifacts/material_fonts';
   Future<void> fam(String name, List<String> files) async {
     final FontLoader l = FontLoader(name);
     for (final String f in files) {
+      if (!File(f).existsSync()) continue;
       final List<int> b = File(f).readAsBytesSync();
       l.addFont(Future<ByteData>.value(ByteData.view(Uint8List.fromList(b).buffer)));
     }
@@ -29,7 +30,7 @@ Future<void> loadFonts() async {
   ];
   await fam('Roboto', rob);
   await fam('FlutterTest', rob);
-  const String a = '/workspace/work/nexora_redesign/assets/fonts';
+  const String a = 'assets/fonts';
   await fam('ChakraPetch', <String>['$a/ChakraPetch-Regular.ttf', '$a/ChakraPetch-SemiBold.ttf', '$a/ChakraPetch-Bold.ttf']);
   await fam('Estedad', <String>['$a/Estedad-Regular.ttf', '$a/Estedad-Medium.ttf', '$a/Estedad-Bold.ttf', '$a/Estedad-Black.ttf']);
   await fam('Lalezar', <String>['$a/Lalezar-Regular.ttf']);

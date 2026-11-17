@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/profile/profile_service.dart';
 import '../../../core/settings/app_settings.dart';
 import '../../../core/theme/nx_theme.dart';
+import '../../../core/widgets/nx_states.dart';
 import '../../../core/widgets/nx_widgets.dart';
 import '../models/orbit_models.dart';
 import '../state/orbit_controller.dart';
@@ -77,7 +78,7 @@ class OrbitChatsTab extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final ctrl = ref.watch(orbitControllerProvider);
-    if (ctrl.loading) return const Center(child: CircularProgressIndicator());
+    if (ctrl.loading) return const NxLoadingState();
     final pal = WorldPalette.orbit;
     final items = ctrl.inboxItems;
     return RefreshIndicator(
@@ -258,17 +259,10 @@ class _OfflineCallsTab extends StatelessWidget {
         card(Icons.groups_rounded, 'تماس گروهی', 'Group call', 'گردهمایی صوتی و تصویری دوستان', 'Voice and video with your crew',
             NxColors.violet),
         const SizedBox(height: 20),
-        Center(
-          child: Column(children: <Widget>[
-            const OracleAvatar(pose: 'calm', size: 80),
-            const SizedBox(height: 8),
-            Text(
-              context.tx(
-                  'تاریخچه‌ی تماس خالی است. هیچ تماسی شبیه‌سازی نمی‌شود.', 'Call history is empty. No call is ever simulated.'),
-              textAlign: TextAlign.center,
-              style: const TextStyle(color: NxColors.textDim),
-            ),
-          ]),
+        NxEmptyState(
+          leading: const OracleAvatar(pose: 'calm', size: 80),
+          message: context.tx(
+              'تاریخچه‌ی تماس خالی است. هیچ تماسی شبیه‌سازی نمی‌شود.', 'Call history is empty. No call is ever simulated.'),
         ),
       ],
     );
@@ -529,14 +523,11 @@ class _OnlineCallsTabState extends ConsumerState<_OnlineCallsTab> {
           ),
           const SizedBox(height: 12),
           if (calls == null)
-            const Center(child: Padding(padding: EdgeInsets.all(24), child: CircularProgressIndicator()))
+            const NxLoadingState()
           else if (calls.isEmpty)
-            Center(
-              child: Column(children: <Widget>[
-                const OracleAvatar(pose: 'calm', size: 80),
-                const SizedBox(height: 8),
-                Text(context.tx('هنوز تماسی نداشته‌ای.', 'No calls yet.'), style: const TextStyle(color: NxColors.textDim)),
-              ]),
+            NxEmptyState(
+              leading: const OracleAvatar(pose: 'calm', size: 80),
+              message: context.tx('هنوز تماسی نداشته‌ای.', 'No calls yet.'),
             )
           else
             for (final OrbitCallEntry e in calls)
@@ -771,20 +762,12 @@ class _OrbitFriendsPanelState extends ConsumerState<OrbitFriendsPanel> {
           Text('${context.tx('دوستان', 'Friends')}${friends == null ? '' : ' (${friends.length})'}',
               style: const TextStyle(fontWeight: FontWeight.w900)),
           if (friends == null)
-            const Padding(padding: EdgeInsets.all(20), child: Center(child: CircularProgressIndicator()))
+            const NxLoadingState()
           else if (friends.isEmpty)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              child: Column(children: <Widget>[
-                const OracleAvatar(pose: 'happy', size: 80),
-                const SizedBox(height: 8),
-                Text(
-                  context.tx('هنوز دوستی نداری. نام کاربری دوستت را بالا جستجو کن و درخواست بفرست.',
-                      'No friends yet. Search a username above and send a request.'),
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(color: NxColors.textDim, height: 1.5),
-                ),
-              ]),
+            NxEmptyState(
+              leading: const OracleAvatar(pose: 'happy', size: 80),
+              message: context.tx('هنوز دوستی نداری. نام کاربری دوستت را بالا جستجو کن و درخواست بفرست.',
+                  'No friends yet. Search a username above and send a request.'),
             )
           else
             for (final NxUser u in friends)

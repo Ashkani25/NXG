@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/settings/app_settings.dart';
 import '../../../core/theme/nx_theme.dart';
+import '../../../core/widgets/nx_states.dart';
 import '../../../core/widgets/nx_widgets.dart';
 import '../data/models.dart';
 import '../data/tournament_repository.dart';
@@ -67,16 +68,16 @@ class _TournamentInboxPageState extends ConsumerState<TournamentInboxPage> {
       palette: WorldPalette.arcade,
       showWallet: false,
       body: _loading
-          ? const Center(child: CircularProgressIndicator())
+          ? const NxLoadingState()
           : RefreshIndicator(
               onRefresh: _load,
               child: _items.isEmpty
                   ? ListView(children: <Widget>[
-                      const SizedBox(height: 120),
-                      Center(
-                          child: Text(
-                              context.tx('اعلانی نداری', 'No notifications'),
-                              style: const TextStyle(color: NxColors.textDim))),
+                      const SizedBox(height: 60),
+                      NxEmptyState(
+                        icon: Icons.notifications_none_rounded,
+                        message: context.tx('اعلانی نداری', 'No notifications'),
+                      ),
                     ])
                   : ListView.builder(
                       padding: const EdgeInsets.all(NxSpace.md),

@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
 import '../../../core/catalog/catalog.dart';
-import '../../../core/online/online_service.dart';
 import '../../../core/profile/profile_service.dart';
 import '../../../core/settings/app_settings.dart';
 import '../../../core/theme/nx_theme.dart';
@@ -213,47 +211,8 @@ class IdentityTab extends ConsumerWidget {
                 value: poDigits(context, '${p.inventory.length}')),
           ]),
         ),
-        PoSectionTitle(context.tx('میانبرها', 'Quick links'),
-            icon: Icons.bolt_rounded),
-        Wrap(spacing: 8, runSpacing: 8, children: <Widget>[
-          ActionChip(
-            avatar: const Icon(Icons.storefront_rounded, size: 18),
-            label: Text(context.tx('NEXORA Exchange', 'NEXORA Exchange')),
-            onPressed: () => context.push('/world/nexora_exchange'),
-          ),
-          ActionChip(
-            avatar: const Icon(Icons.sports_esports_rounded, size: 18),
-            label: Text(context.tx('آرکید', 'Arcade')),
-            onPressed: () => context.push('/world/nexora_arcade'),
-          ),
-          ActionChip(
-            avatar: const Icon(Icons.settings_rounded, size: 18),
-            label: Text(context.tx('تنظیمات', 'Settings')),
-            onPressed: () => context.push('/settings'),
-          ),
-        ]),
-        PoSectionTitle(context.tx('دوستان', 'Friends'),
-            icon: Icons.group_rounded),
-        Theme(
-          data: ThemeData.dark(useMaterial3: true),
-          child: Container(
-            decoration: BoxDecoration(
-                color: NxColors.navy,
-                borderRadius: BorderRadius.circular(NxRadius.lg)),
-            child: ref.watch(onlineProvider).isOnline
-                ? ListTile(
-                    leading: Icon(Icons.group_rounded, color: visual.accent),
-                    title: Text(context.tx('دوستان، درخواست‌ها و جستجو',
-                        'Friends, requests and search')),
-                    subtitle: Text(context.tx('در ORBIT NETWORK › مخاطبان',
-                        'In ORBIT NETWORK › Contacts')),
-                    trailing: const Icon(Icons.chevron_right_rounded),
-                    onTap: () => context.push('/world/orbit_network'),
-                  )
-                : const OnlineOnlyNotice(
-                    featureFa: 'فهرست دوستان', featureEn: 'The friends list'),
-          ),
-        ),
+        // Quick links (Shop / Arcade / Settings) and the Friends shortcut were removed: each has one home
+        // (dock tabs, Home › gear, Social › Chats › Contacts). See docs/UI_AUDIT.md.
       ],
     );
   }

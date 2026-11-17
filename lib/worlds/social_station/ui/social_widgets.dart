@@ -7,6 +7,7 @@ import '../../../core/assets/app_assets.dart';
 import '../../../core/profile/profile_service.dart';
 import '../../../core/settings/app_settings.dart';
 import '../../../core/theme/nx_theme.dart';
+import '../../../core/widgets/nx_states.dart';
 import '../../../core/widgets/nx_widgets.dart';
 import '../../orbit_network/models/arcade_refs.dart';
 import '../models/social_models.dart';
@@ -173,19 +174,7 @@ class SocialEmpty extends StatelessWidget {
   final Widget? action;
 
   @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(NxSpace.lg),
-        child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-          Icon(icon, size: 56, color: kSocialPalette.primary.withValues(alpha: 0.7)),
-          const SizedBox(height: 12),
-          Text(context.tx(fa, en), textAlign: TextAlign.center, style: const TextStyle(color: NxColors.textDim, height: 1.5)),
-          if (action != null) ...<Widget>[const SizedBox(height: 14), action!],
-        ]),
-      ),
-    );
-  }
+  Widget build(BuildContext context) => NxEmptyState(icon: icon, message: context.tx(fa, en), action: action);
 }
 
 /// Live countdown that ticks every second until [target].

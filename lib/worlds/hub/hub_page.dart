@@ -11,12 +11,10 @@ import '../../core/ui2/nx2_assets.dart';
 import '../../core/ui2/nx2_widgets.dart';
 import '../../core/ui2/oracle_mascot.dart';
 import '../../core/widgets/nx_widgets.dart';
-import '../../games/game_registry.dart';
-import '../world_registry.dart';
-import 'hub_search.dart';
 
-/// NEXORA HUB (NX2 redesign): profile HUD on top, ORACLE on its crystal dock in the middle,
-/// one big PLAY, the art menu tiles and the bottom dock — following the owner's home mockups.
+/// HOME tab (NX2 redesign, simplified in UI audit M1): profile HUD on top (avatar -> Profile, coins -> Shop,
+/// gear -> Settings), ORACLE on its crystal dock, one big PLAY, ORACLE chat, today's reward when it is ready,
+/// and the tournaments / latest-activity strip. Everything else lives in its own tab (docs/UI_AUDIT.md).
 class HubPage extends ConsumerStatefulWidget {
   const HubPage({super.key});
 
@@ -131,49 +129,35 @@ class _HubPageState extends ConsumerState<HubPage> {
                     onLongPress: () => context.push('/oracle'),
                   ),
                 ),
+                // One primary action (PLAY = shortcut to the Play tab) and ORACLE, whose home is this screen.
                 SliverToBoxAdapter(
                   child: Padding(
-                    padding: const EdgeInsets.fromLTRB(28, 0, 28, 6),
+                    padding: const EdgeInsets.fromLTRB(28, 0, 28, 8),
                     child: Nx2Button(
                       label: context.tx('بازی کن', 'PLAY'),
                       icon: Icons.play_arrow_rounded,
                       kind: Nx2ButtonKind.pink,
                       height: 64,
                       fontSize: 22,
-                      onTap: () => context.push('/world/nexora_arcade'),
+                      onTap: () => nx2GoTab(context, Nx2Tab.games, Nx2Tab.home),
                     ),
                   ),
                 ),
                 SliverToBoxAdapter(
                   child: Padding(
-                    padding: const EdgeInsets.fromLTRB(28, 4, 28, 14),
-                    child: Row(children: <Widget>[
-                      Expanded(
-                        child: Nx2Button(
-                          label: context.tx('آنلاین', 'ONLINE'),
-                          icon: Icons.public_rounded,
-                          kind: Nx2ButtonKind.cyan,
-                          height: 46,
-                          fontSize: 14,
-                          onTap: () => context.push('/online/finger_soccer'),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Nx2Button(
-                          label: context.tx('اوراکل', 'ORACLE'),
-                          icon: Icons.auto_awesome_rounded,
-                          kind: Nx2ButtonKind.violet,
-                          height: 46,
-                          fontSize: 14,
-                          onTap: () => context.push('/oracle'),
-                        ),
-                      ),
-                    ]),
+                    padding: const EdgeInsets.fromLTRB(28, 0, 28, 12),
+                    child: Nx2Button(
+                      label: context.tx('گفت‌وگو با اوراکل', 'ASK ORACLE'),
+                      icon: Icons.auto_awesome_rounded,
+                      kind: Nx2ButtonKind.violet,
+                      height: 46,
+                      fontSize: 14,
+                      onTap: () => context.push('/oracle'),
+                    ),
                   ),
                 ),
-                SliverToBoxAdapter(
-                    child: _MenuGrid(profile: p, onDaily: _claimDaily)),
+                if (p.canClaimDaily)
+                  SliverToBoxAdapter(child: _DailyCard(onClaim: _claimDaily)),
                 SliverToBoxAdapter(child: _ActivityStrip(profile: p)),
                 const SliverToBoxAdapter(child: SizedBox(height: 120)),
               ],
@@ -237,13 +221,6 @@ class _Hud extends StatelessWidget {
           value: '${profile.coins}',
           wiggle: coinPoke,
           onTap: () => context.push('/world/nexora_exchange'),
-        ),
-        const SizedBox(width: 6),
-        Nx2IconButton(
-          icon: Icons.search_rounded,
-          tooltip: context.tx('جستجو', 'Search'),
-          onTap: () => showSearch<void>(
-              context: context, delegate: HubSearchDelegate(isFa: context.isFa)),
         ),
         const SizedBox(width: 6),
         Nx2IconButton(
@@ -312,124 +289,30 @@ class _OracleStage extends StatelessWidget {
   }
 }
 
-class _MenuItem {
-  const _MenuItem(this.asset, this.fa, this.en, this.onTap, {this.badge = false});
-  final String asset;
-  final String fa;
-  final String en;
-  final VoidCallback onTap;
-  final bool badge;
-}
-
-class _MenuGrid extends StatelessWidget {
-  const _MenuGrid({required this.profile, required this.onDaily});
-  final ProfileService profile;
-  final VoidCallback onDaily;
+/// Shown only while today's reward is unclaimed (shortcut; its home is Profile › Rewards).
+class _DailyCard extends StatelessWidget {
+  const _DailyCard({required this.onClaim});
+  final VoidCallback onClaim;
 
   @override
   Widget build(BuildContext context) {
-    final List<_MenuItem> items = <_MenuItem>[
-      _MenuItem(Nx2Assets.tilesTileShop, 'فروشگاه', 'Shop',
-          () => context.push('/world/nexora_exchange')),
-      _MenuItem(Nx2Assets.tilesTileInventory, 'کوله‌پشتی', 'Inventory',
-          () => context.push('/world/personal_orbit')),
-      _MenuItem(Nx2Assets.tilesTileRanking, 'رتبه‌بندی', 'Ranking',
-          () => context.push('/leaderboard')),
-      _MenuItem(Nx2Assets.badgesTrophyGold, 'تورنمنت', 'Cups',
-          () => context.push('/tournaments')),
-      _MenuItem(Nx2Assets.badgesMedalPeople, 'دوستان', 'Friends',
-          () => context.push('/world/orbit_network')),
-      _MenuItem(Nx2Assets.badgesMedalCrown, 'اجتماع', 'Social',
-          () => context.push('/world/social_station')),
-      _MenuItem(Nx2Assets.badgesBadgePlanet, 'نوا گالری', 'Gallery',
-          () => context.push('/world/nova_gallery')),
-      _MenuItem(Nx2Assets.chestsChestLegendary, 'جایزه', 'Reward', onDaily,
-          badge: profile.canClaimDaily),
-    ];
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12),
+      padding: const EdgeInsets.fromLTRB(12, 0, 12, 0),
       child: Nx2Panel(
-        gems: true,
-        padding: const EdgeInsets.fromLTRB(8, 15, 8, 12),
-        child: Column(children: <Widget>[
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8),
-            child: Nx2SectionHeader(
-              title: context.tx('منوی نکسورا', 'NEXORA MENU'),
-              action: context.tx('همه', 'All'),
-              onAction: () => _showAll(context),
-            ),
+        gold: true,
+        onTap: onClaim,
+        padding: const EdgeInsets.fromLTRB(10, 8, 12, 8),
+        child: Row(children: <Widget>[
+          Image.asset(Nx2Assets.chestsChestLegendary,
+              width: 46, height: 46, cacheWidth: 138, errorBuilder: (_, __, ___) => const SizedBox.shrink()),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(context.tx('جایزه‌ی امروز آماده است', "Today's reward is ready"),
+                style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13.5, color: Nx2.gold)),
           ),
-          const SizedBox(height: 10),
-          LayoutBuilder(builder: (BuildContext context, BoxConstraints c) {
-            final double cell = (c.maxWidth - 16) / 4;
-            return Wrap(
-              spacing: 0,
-              children: <Widget>[
-                for (final _MenuItem it in items)
-                  SizedBox(
-                    width: cell,
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 2),
-                      child: Nx2Tile(
-                        asset: it.asset,
-                        label: context.tx(it.fa, it.en),
-                        onTap: it.onTap,
-                        badge: it.badge,
-                        size: (cell - 8).clamp(56.0, 78.0),
-                      ),
-                    ),
-                  ),
-              ],
-            );
-          }),
+          Text(context.tx('بگیر', 'CLAIM'),
+              style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13, color: Nx2.text)),
         ]),
-      ),
-    );
-  }
-
-  void _showAll(BuildContext context) {
-    showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: const Color(0xF2120A33),
-      builder: (BuildContext ctx) => SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-          child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: <Widget>[
-                const XpBar(),
-                const SizedBox(height: 12),
-                for (final NexoraWorld w in kWorlds)
-                  ListTile(
-                    leading: Icon(w.icon, color: w.palette.primary),
-                    title: Text(ctx.isFa ? w.nameFa : w.name),
-                    subtitle: Text(ctx.tx(w.taglineFa, w.taglineEn),
-                        style: const TextStyle(fontSize: 12)),
-                    onTap: () {
-                      Navigator.pop(ctx);
-                      context.push('/world/${w.id}');
-                    },
-                  ),
-                const Divider(),
-                ListTile(
-                  leading: const Icon(Icons.settings_rounded),
-                  title: Text(ctx.tx('تنظیمات', 'Settings')),
-                  onTap: () {
-                    Navigator.pop(ctx);
-                    context.push('/settings');
-                  },
-                ),
-                ListTile(
-                  leading: const Icon(Icons.info_outline_rounded),
-                  title: Text(ctx.tx(
-                      '${kGames.length} بازی · ${kWorlds.length} دنیا',
-                      '${kGames.length} games · ${kWorlds.length} worlds')),
-                ),
-              ]),
-        ),
       ),
     );
   }
@@ -481,7 +364,7 @@ class _ActivityStrip extends StatelessWidget {
         Expanded(
           child: Nx2Panel(
             padding: const EdgeInsets.all(10),
-            onTap: () => context.push('/world/personal_orbit'),
+            onTap: () => context.push('/world/personal_orbit?tab=activity'),
             child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[

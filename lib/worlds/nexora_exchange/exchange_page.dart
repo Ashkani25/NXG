@@ -131,8 +131,9 @@ class _ExchangePageState extends ConsumerState<ExchangePage> {
     final NxThemeColors visual = NxThemeColors.of(context);
     final int tabCount = _kTabs.length + 1;
     return NxWorldScaffold(
-      title: 'NEXORA EXCHANGE',
+      title: context.tx('فروشگاه', 'SHOP'),
       palette: WorldPalette.exchange,
+      dock: Nx2Tab.shop,
       body: DefaultTabController(
         length: tabCount,
         child: NestedScrollView(
@@ -345,24 +346,6 @@ class _WalletPanel extends ConsumerWidget {
                         style: TextStyle(color: visual.text, fontSize: 12)),
                   ]),
             ),
-            if (p.canClaimDaily)
-              Flexible(child: FilledButton.icon(
-                style: FilledButton.styleFrom(
-                    backgroundColor: visual.accent,
-                    foregroundColor: visual.background),
-                onPressed: () {
-                  final AwardOutcome? o =
-                      ref.read(profileProvider).claimDaily();
-                  if (o != null) {
-                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                        content: Text(
-                            '${context.tx('جایزه‌ی روزانه', 'Daily bonus')}: +${_digits(context, '${o.coins}')}')));
-                    showAwardOutcome(context, o);
-                  }
-                },
-                icon: const Icon(Icons.card_giftcard_rounded, size: 18),
-                label: Text(context.tx('جایزه‌ی روزانه', 'Daily bonus')),
-              )),
           ]),
           const SizedBox(height: NxSpace.sm),
           Theme(

@@ -298,6 +298,7 @@ class NxWorldScaffold extends StatelessWidget {
   Widget build(BuildContext context) {
     final Widget? bottom = bottomNavigationBar ??
         (dock != null ? Nx2Dock(current: dock) : null);
+    final Widget? sub = NxSubNav.maybeOf(context);
     return Scaffold(
       extendBodyBehindAppBar: true,
       backgroundColor: Nx2.deep,
@@ -308,7 +309,7 @@ class NxWorldScaffold extends StatelessWidget {
         room: room,
         child: SafeArea(
           bottom: bottom == null,
-          child: body,
+          child: sub == null ? body : Column(children: <Widget>[sub, Expanded(child: body)]),
         ),
       ),
     );

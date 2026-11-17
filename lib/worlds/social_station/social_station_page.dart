@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/profile/profile_service.dart';
 import '../../core/settings/app_settings.dart';
 import '../../core/theme/nx_theme.dart';
+import '../../core/widgets/nx_states.dart';
 import '../../core/widgets/nx_widgets.dart';
 import 'models/social_models.dart';
 import 'state/social_controller.dart';
@@ -162,19 +163,8 @@ class _SocialStationPageState extends ConsumerState<SocialStationPage> {
             style: const TextStyle(fontWeight: FontWeight.w900)),
       ),
       body: ctrl.loading
-          ? Center(
-              child: GlassPanel(
-                child:
-                    Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-                  CircularProgressIndicator(color: visual.accent),
-                  const SizedBox(height: NxSpace.md),
-                  Text(
-                      context.tx('در حال آماده‌سازی ایستگاه…',
-                          'Preparing your station…'),
-                      style: TextStyle(color: visual.muted)),
-                ]),
-              ),
-            )
+          ? NxLoadingState(
+              message: context.tx('در حال آماده‌سازی ایستگاه…', 'Preparing your station…'))
           : CustomScrollView(slivers: <Widget>[
               SliverPadding(
                 padding: const EdgeInsets.fromLTRB(
@@ -238,14 +228,7 @@ class _SocialStationPageState extends ConsumerState<SocialStationPage> {
                     en: all.isEmpty
                         ? 'No communities yet. Build your first gathering station: events, tournaments and its own feed.'
                         : 'No community matches this search.',
-                    action: all.isEmpty
-                        ? FilledButton.icon(
-                            onPressed: _create,
-                            icon: const Icon(Icons.add_rounded),
-                            label: Text(
-                                context.tx('ساخت جامعه', 'Create community')),
-                          )
-                        : null,
+                    // "New community" is the page's floating button (one way to create).
                   ),
                 )
               else
@@ -597,13 +580,12 @@ class _DiscoverSheetState extends ConsumerState<_DiscoverSheet> {
         const SizedBox(height: 8),
         Expanded(
           child: l == null
-              ? const Center(child: CircularProgressIndicator())
+              ? const NxLoadingState()
               : l.isEmpty
-                  ? Center(
-                      child: Text(
-                          context.tx('جامعه‌ی عمومی تازه‌ای پیدا نشد.',
-                              'No new public communities found.'),
-                          style: const TextStyle(color: NxColors.textDim)),
+                  ? NxEmptyState(
+                      icon: Icons.groups_rounded,
+                      message: context.tx('جامعه‌ی عمومی تازه‌ای پیدا نشد.',
+                          'No new public communities found.'),
                     )
                   : ListView(children: <Widget>[
                       for (final Community c in l)

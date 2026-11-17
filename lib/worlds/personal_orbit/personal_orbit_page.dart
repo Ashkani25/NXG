@@ -18,7 +18,19 @@ import 'ui/wardrobe_tab.dart';
 /// Premium dark world: identity & avatar, missions, wardrobe, 2.5D room,
 /// achievements, stats and activity. Everything is local-first (LocalStore).
 class PersonalOrbitPage extends ConsumerStatefulWidget {
-  const PersonalOrbitPage({super.key});
+  const PersonalOrbitPage({super.key, this.initialTab});
+
+  /// `?tab=` id: identity | rewards | wardrobe | space | achievements | stats | activity.
+  final String? initialTab;
+
+  static const List<String> tabIds = <String>[
+    'identity', 'rewards', 'wardrobe', 'space', 'achievements', 'stats', 'activity'
+  ];
+
+  static int tabIndex(String? id) {
+    final int i = tabIds.indexOf(id ?? '');
+    return i < 0 ? 0 : i;
+  }
 
   @override
   ConsumerState<PersonalOrbitPage> createState() => _PersonalOrbitPageState();
@@ -66,7 +78,8 @@ class _PersonalOrbitPageState extends ConsumerState<PersonalOrbitPage> {
     final List<_TabDef> tabs = <_TabDef>[
       _TabDef(Icons.badge_rounded, context.tx('هویت', 'Identity'),
           const IdentityTab()),
-      _TabDef(Icons.flag_rounded, context.tx('مأموریت‌ها', 'Missions'),
+      // Daily reward + missions: the single home of rewards (the old REWARDS dock page duplicated this tab).
+      _TabDef(Icons.card_giftcard_rounded, context.tx('جایزه‌ها', 'Rewards'),
           const MissionsTab()),
       _TabDef(Icons.checkroom_rounded, context.tx('کمد لباس', 'Wardrobe'),
           const WardrobeTab()),
@@ -85,8 +98,9 @@ class _PersonalOrbitPageState extends ConsumerState<PersonalOrbitPage> {
         style: TextStyle(color: visual.text),
         child: DefaultTabController(
           length: tabs.length,
+          initialIndex: PersonalOrbitPage.tabIndex(widget.initialTab),
           child: NxWorldScaffold(
-            title: context.tx('پروفایل · مدار شخصی', 'PROFILE · PERSONAL ORBIT'),
+            title: context.tx('پروفایل', 'PROFILE'),
             palette: WorldPalette.personal,
             dock: Nx2Tab.profile,
             body: Column(children: <Widget>[
@@ -98,12 +112,6 @@ class _PersonalOrbitPageState extends ConsumerState<PersonalOrbitPage> {
                   borderRadius: BorderRadius.circular(NxRadius.lg),
                   border:
                       Border.all(color: visual.border.withValues(alpha: 0.66)),
-                  boxShadow: <BoxShadow>[
-                    BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.25),
-                        blurRadius: 18,
-                        offset: const Offset(0, 6)),
-                  ],
                 ),
                 child: TabBar(
                   isScrollable: true,

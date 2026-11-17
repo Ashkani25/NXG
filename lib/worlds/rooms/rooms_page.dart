@@ -9,11 +9,12 @@ import '../../core/online/online_service.dart';
 import '../../core/settings/app_settings.dart';
 import '../../core/theme/nx_theme.dart';
 import '../../core/ui2/nx2_widgets.dart';
+import '../../core/widgets/nx_states.dart';
 import '../../core/widgets/nx_widgets.dart';
 import '../../games/core/game_contract.dart';
 import '../../games/game_registry.dart';
 
-/// ROOMS — opened by the big GAME button in the dock.
+/// PLAY tab (raised centre of the dock) — the one home of everything game-related.
 ///  * Quick Play: pick a game -> real matchmaking (`nx_quick`) in that game's lobby.
 ///  * Create Room: pick a game -> a new public room (`nx_create_room`), others can join from this list.
 ///  * Open rooms: every public lobby on the server right now (no placeholder rows: empty/offline states only).
@@ -108,7 +109,7 @@ class _RoomsPageState extends ConsumerState<RoomsPage> {
   @override
   Widget build(BuildContext context) {
     return NxWorldScaffold(
-      title: context.tx('اتاق‌ها', 'ROOMS'),
+      title: context.tx('بازی', 'PLAY'),
       palette: WorldPalette.arcade,
       dock: Nx2Tab.games,
       room: true,
@@ -141,30 +142,47 @@ class _RoomsPageState extends ConsumerState<RoomsPage> {
               ),
             ]),
             const SizedBox(height: 10),
-            Nx2Button(
-              label: context.tx('همه‌ی بازی‌ها (آفلاین و با ربات)', 'ALL GAMES (offline & vs bot)'),
-              icon: Icons.sports_esports_rounded,
-              kind: Nx2ButtonKind.violet,
-              height: 50,
-              fontSize: 13,
-              onTap: () => context.push('/world/nexora_arcade'),
-            ),
+            // The single home of: all games (offline / vs bot), tournaments and rankings.
+            Row(children: <Widget>[
+              Expanded(
+                child: _PlayLink(
+                  icon: Icons.sports_esports_rounded,
+                  label: context.tx('همه‌ی بازی‌ها', 'All games'),
+                  onTap: () => context.push('/world/nexora_arcade'),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _PlayLink(
+                  icon: Icons.emoji_events_rounded,
+                  label: context.tx('تورنمنت‌ها', 'Tournaments'),
+                  onTap: () => context.push('/tournaments'),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _PlayLink(
+                  icon: Icons.leaderboard_rounded,
+                  label: context.tx('رتبه‌بندی', 'Rankings'),
+                  onTap: () => context.push('/leaderboard'),
+                ),
+              ),
+            ]),
             const SizedBox(height: 18),
             Nx2SectionHeader(title: context.tx('اتاق‌های باز', 'Open rooms')),
             const SizedBox(height: 8),
             if (_loading && _rooms.isEmpty)
-              const Padding(padding: EdgeInsets.all(28), child: Center(child: CircularProgressIndicator()))
+              const NxLoadingState()
             else if (_error != null && _rooms.isEmpty)
-              _Empty(
-                icon: Icons.wifi_off_rounded,
-                text: context.tx('اتصال به سرور برقرار نشد. بازی آفلاین در «همه‌ی بازی‌ها» در دسترس است.',
+              NxErrorState(
+                message: context.tx('اتصال به سرور برقرار نشد. بازی آفلاین در «همه‌ی بازی‌ها» در دسترس است.',
                     'Could not reach the server. Offline games are under “All games”.'),
                 onRetry: _load,
               )
             else if (_rooms.isEmpty)
-              _Empty(
+              NxEmptyState(
                 icon: Icons.meeting_room_outlined,
-                text: context.tx('الان اتاق بازی وجود ندارد. اولین اتاق را بساز!',
+                message: context.tx('الان اتاق بازی وجود ندارد. اولین اتاق را بساز!',
                     'No open rooms right now. Create the first one!'),
                 onRetry: _load,
               )
@@ -217,25 +235,25 @@ class _RoomsPageState extends ConsumerState<RoomsPage> {
   }
 }
 
-class _Empty extends StatelessWidget {
-  const _Empty({required this.icon, required this.text, required this.onRetry});
+class _PlayLink extends StatelessWidget {
+  const _PlayLink({required this.icon, required this.label, required this.onTap});
   final IconData icon;
-  final String text;
-  final Future<void> Function() onRetry;
+  final String label;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     return Nx2Panel(
-      padding: const EdgeInsets.all(18),
-      child: Column(children: <Widget>[
-        Icon(icon, size: 40, color: Nx2.muted),
-        const SizedBox(height: 8),
-        Text(text, textAlign: TextAlign.center, style: const TextStyle(color: Nx2.text, fontSize: 13)),
-        const SizedBox(height: 10),
-        TextButton.icon(
-            onPressed: onRetry,
-            icon: const Icon(Icons.refresh_rounded),
-            label: Text(context.tx('تلاش دوباره', 'Retry'))),
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
+      onTap: onTap,
+      child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
+        Icon(icon, color: Nx2.cyan, size: 24),
+        const SizedBox(height: 4),
+        Text(label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: Nx2.text, fontSize: 12, fontWeight: FontWeight.w800)),
       ]),
     );
   }

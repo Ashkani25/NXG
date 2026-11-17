@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/profile/profile_service.dart';
 import '../../../core/settings/app_settings.dart';
 import '../../../core/theme/nx_theme.dart';
+import '../../../core/widgets/nx_states.dart';
 import '../../../core/widgets/nx_widgets.dart';
 import '../models/nova_models.dart';
 import '../state/nova_controller.dart';
@@ -24,7 +25,7 @@ class NovaFeedTab extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final ctrl = ref.watch(novaControllerProvider);
-    if (ctrl.loading) return const Center(child: CircularProgressIndicator());
+    if (ctrl.loading) return const NxLoadingState();
     final posts = ctrl.posts;
     return RefreshIndicator(
       onRefresh: ctrl.refresh,
@@ -37,12 +38,8 @@ class NovaFeedTab extends ConsumerWidget {
               hasScrollBody: false,
               child: NovaEmptyState(
                 fa: 'فید خالی است. اولین پستت را منتشر کن تا گالری‌ات جان بگیرد.',
+                // No extra "New post" button: the page's compose button is the one way to post.
                 en: 'Your feed is empty. Publish your first post to bring your gallery to life.',
-                action: FilledButton.icon(
-                  onPressed: () => showNovaComposer(context),
-                  icon: const Icon(Icons.add_rounded),
-                  label: Text(context.tx('پست تازه', 'New post')),
-                ),
               ),
             )
           else
@@ -164,7 +161,7 @@ class NovaReelsTab extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final ctrl = ref.watch(novaControllerProvider);
     final me = ref.watch(profileProvider).explorerId;
-    if (ctrl.loading) return const Center(child: CircularProgressIndicator());
+    if (ctrl.loading) return const NxLoadingState();
     final reels = ctrl.motionPosts;
     if (reels.isEmpty) {
       return NovaEmptyState(
@@ -408,7 +405,7 @@ class _NovaExploreTabState extends ConsumerState<NovaExploreTab> {
         ),
       ),
       if (_searching)
-        const SliverToBoxAdapter(child: Padding(padding: EdgeInsets.all(24), child: Center(child: CircularProgressIndicator())))
+        const SliverToBoxAdapter(child: NxLoadingState())
       else if (_results.isEmpty)
         SliverToBoxAdapter(
           child: NovaEmptyState(

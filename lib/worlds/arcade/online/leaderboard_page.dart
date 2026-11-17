@@ -6,6 +6,7 @@ import '../../../core/online/online_service.dart';
 import '../../../core/settings/app_settings.dart';
 import '../../../core/theme/nx_theme.dart';
 import '../../../core/ui2/nx2_assets.dart';
+import '../../../core/widgets/nx_states.dart';
 import '../../../core/widgets/nx_widgets.dart';
 import '../../../games/game_registry.dart';
 
@@ -156,34 +157,16 @@ class _LeaderboardPageState extends ConsumerState<LeaderboardPage> {
         ),
         Expanded(
           child: _loading
-              ? const Center(child: CircularProgressIndicator())
+              ? const NxLoadingState()
               : _error != null
-                  ? Center(
-                      child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: <Widget>[
-                            Icon(Icons.cloud_off_rounded,
-                                size: 38, color: visual.muted),
-                            const SizedBox(height: 8),
-                            Text(_error!, textAlign: TextAlign.center),
-                            TextButton.icon(
-                              onPressed: _load,
-                              icon: const Icon(Icons.refresh_rounded),
-                              label: Text(context.tx('تلاش دوباره', 'Retry')),
-                            ),
-                          ]),
-                    )
+                  ? NxErrorState(message: _error!, onRetry: _load)
                   : _rows.isEmpty
-                      ? Center(
-                          child: Padding(
-                            padding: const EdgeInsets.all(24),
-                            child: Text(
-                              context.tx(
-                                  'هنوز کسی در این بخش بازی آنلاین ثبت نکرده. اولین نفر باش!',
-                                  'No online results here yet. Be the first!'),
-                              textAlign: TextAlign.center,
-                            ),
-                          ),
+                      ? NxEmptyState(
+                          icon: Icons.leaderboard_rounded,
+                          message: context.tx(
+                              'هنوز کسی در این بخش بازی آنلاین ثبت نکرده. اولین نفر باش!',
+                              'No online results here yet. Be the first!'),
+                          onRetry: _load,
                         )
                       : RefreshIndicator(
                           onRefresh: _load,

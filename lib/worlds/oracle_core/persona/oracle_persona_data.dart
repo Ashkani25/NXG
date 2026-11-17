@@ -410,15 +410,15 @@ const Map<String, dynamic> kOraclePersonaDefaults = <String, dynamic>{
     'home': <Map<String, dynamic>>[
       <String, dynamic>{'target': null, 'title': 'خوش اومدی به NEXORA!', 'text': '{jan} من اوراکلم، راهنمای شیطون این‌جا! بیا یه دور سریع بزنیم که گم نشی.'},
       <String, dynamic>{'target': 'area:top', 'title': 'بالای صفحه', 'text': 'این بالا اسم و سطح و سکه‌هاته. سکه‌ها رو با بازی و جایزه‌ی روزانه جمع می‌کنی، نه با گریه!'},
-      <String, dynamic>{'target': 'key:dock', 'title': 'داک پایین', 'text': 'این نوار پایین راه همه‌جاست: چت و رسانه، اوراکل، فروشگاه، تورنمنت و جایزه‌ها.'},
+      <String, dynamic>{'target': 'key:dock', 'title': 'داک پایین', 'text': 'این نوار پایین راه همه‌جاست: خانه، اجتماعی، بازی، فروشگاه و پروفایل. فقط پنج‌تا، که گم نشی!'},
       <String, dynamic>{'target': 'key:dock.games', 'title': 'دکمه‌ی بزرگ بازی', 'text': 'این دکمه‌ی گنده‌ی وسط، اتاق‌ها و بازی‌هاست. {jan} از این‌جا می‌ری تو دل ماجرا!'},
     ],
     'dock': <Map<String, dynamic>>[
-      <String, dynamic>{'target': 'key:dock.social', 'title': 'چت و رسانه', 'text': 'پست و استوری، پیام‌ها و دوستات این‌جان.'},
-      <String, dynamic>{'target': 'key:dock.oracle', 'title': 'اوراکل', 'text': 'این خودمم! هر سؤالی داشتی بپرس، حتی سؤالای عجیب.'},
+      <String, dynamic>{'target': 'key:dock.social', 'title': 'اجتماعی', 'text': 'پست و استوری، گفت‌وگوها و دوستات، و جامعه‌ها همه این‌جان.'},
+      <String, dynamic>{'target': 'key:dock.games', 'title': 'بازی', 'text': 'بازی سریع، اتاق‌ها، همه‌ی بازی‌ها، تورنمنت‌ها و رتبه‌بندی. جام‌ها هم همین‌جان!'},
       <String, dynamic>{'target': 'key:dock.shop', 'title': 'فروشگاه', 'text': 'با سکه‌هات لباس آواتار، مهره، استرایکر، چوب بیلیارد، تم و قاب بخر. خرج نکنی سکه‌ها کپک می‌زنن!'},
-      <String, dynamic>{'target': 'key:dock.tournaments', 'title': 'تورنمنت', 'text': 'جام‌ها این‌جان: ثبت‌نام کن، بازی کن، جایزه ببر.'},
-      <String, dynamic>{'target': 'key:dock.rewards', 'title': 'جایزه و پک', 'text': 'جایزه‌ی روزانه و پک‌ها این‌جاست. هر روز سر بزن، من حواسم هست!'},
+      <String, dynamic>{'target': 'key:dock.profile', 'title': 'پروفایل', 'text': 'جایزه‌ی روزانه، مأموریت‌ها، کمد لباس و آمارت این‌جاست. هر روز سر بزن، من حواسم هست!'},
+      <String, dynamic>{'target': 'key:dock.home', 'title': 'خانه', 'text': 'منو هر وقت خواستی تو خونه پیدا می‌کنی. {jan} نگهم داری، گپ می‌زنیم!'},
     ],
     'rooms': <Map<String, dynamic>>[
       <String, dynamic>{'target': 'area:top', 'title': 'اتاق‌ها', 'text': '{jan} این‌جا مرکز بازی آنلاینه: «بازی سریع» تو رو با یه حریف جفت می‌کنه، «ساخت اتاق» یه اتاق با کد می‌سازه.'},
