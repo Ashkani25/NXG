@@ -1,11 +1,12 @@
 import 'dart:math' as math;
 
+import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/scheduler.dart';
 
 import 'package:nexora/core/assets/app_assets.dart';
 import 'package:nexora/core/storage/local_store.dart';
 import 'package:nexora/core/theme/nx_theme.dart';
+import 'package:nexora/games/core/flame/nx_flame.dart';
 import 'package:nexora/games/core/game_contract.dart';
 import '../core/carrom_config.dart';
 import '../core/carrom_match.dart';
@@ -42,12 +43,13 @@ class CarromView extends StatefulWidget {
   State<CarromView> createState() => _CarromViewState();
 }
 
-class _CarromViewState extends State<CarromView>
-    with SingleTickerProviderStateMixin {
+class _CarromViewState extends State<CarromView> {
   late final CrController _c;
-  late final Ticker _ticker;
+
+  /// Flame host: fixed 1/120 s simulation steps, renders [CrPainter] + Flame effects
+  /// (fire behind a hard striker, pocket spark rings, queen / win celebrations).
+  late final NxFlameHost _host;
   final CrImages _images = CrImages();
-  Duration _last = Duration.zero;
   int _skin = LocalStore.instance.getInt('carrom.board_skin') ?? 0;
 
   /// Cycles the table art (wood → black/green → silver → classic), remembered on the device.
@@ -61,8 +63,20 @@ class _CarromViewState extends State<CarromView>
   void initState() {
     super.initState();
     _c = CrController(widget.launch);
-    _ticker = createTicker(_onTick);
-    _ticker.start();
+    _host = NxFlameHost(
+      step: CrConfig.dt,
+      onStep: (double _) => _c.simStep(),
+      onFrame: _onFrame,
+      fxConfig: NxFxConfig.of(
+          fancyEffects: widget.launch.fancyEffects, reducedMotion: widget.launch.reducedMotion),
+    );
+    _c.onPocketFx = (double x, double y, Color color) =>
+        _host.fx.ring(_toScreen(x, y), color, count: 12, radius: CrConfig.coinR * 2.2 * _c.viewScale);
+    _c.onCelebrate = (bool win) {
+      final Offset c = _toScreen(CrConfig.centerX, CrConfig.centerY);
+      _host.fx.burst(c, count: win ? 64 : 36, speed: win ? 480 : 340, life: win ? 1.5 : 1.1);
+      _host.fx.fireBurst(c, count: win ? 44 : 26, size: win ? 1.7 : 1.2);
+    };
     _loadImages();
   }
 
@@ -86,17 +100,32 @@ class _CarromViewState extends State<CarromView>
     });
   }
 
-  void _onTick(Duration elapsed) {
-    var dt = (elapsed - _last).inMicroseconds / 1000000.0;
-    _last = elapsed;
-    if (dt < 0) dt = 0;
-    if (dt > 0.05) dt = 0.05;
-    _c.tick(dt);
+  Offset _toScreen(double x, double y) {
+    final double s = _c.viewScale;
+    final Offset o = _c.viewOrigin;
+    return Offset(o.dx + x * s, o.dy + y * s);
+  }
+
+  void _onFrame(double dt) {
+    if (!mounted) return;
+    _c.frame(dt);
+    // Fire behind the striker on hard shots (render-only, board units -> screen).
+    final st = _c.match.striker;
+    if (_c.match.phase == CrPhase.simulating && st.onBoard && _host.fx.config.enabled) {
+      final double sp = math.sqrt(st.vx * st.vx + st.vy * st.vy);
+      if (sp > 1150) {
+        final Offset p = _toScreen(st.x, st.y);
+        final double s = _c.viewScale;
+        _host.fx.fireTrail(p.dx, p.dy, st.vx * s, st.vy * s, (sp - 1150) / 1300, dt,
+            size: (CrConfig.strikerR * s / 10).clamp(.6, 2.0).toDouble());
+      }
+    }
   }
 
   @override
   void dispose() {
-    _ticker.dispose();
+    _c.onPocketFx = null;
+    _c.onCelebrate = null;
     _c.dispose();
     super.dispose();
   }
@@ -194,6 +223,10 @@ class _CarromViewState extends State<CarromView>
                         child: LayoutBuilder(
                           builder: (BuildContext context, BoxConstraints cons) {
                             _c.viewSize = Size(cons.maxWidth, cons.maxHeight);
+                            _host.painter = CrPainter(_c, _images,
+                                accent: theme.accent,
+                                accentSecondary: theme.accentSecondary,
+                                error: scheme.error);
                             final Widget board = GestureDetector(
                               behavior: HitTestBehavior.opaque,
                               onPanStart: (DragStartDetails d) =>
@@ -202,12 +235,10 @@ class _CarromViewState extends State<CarromView>
                                   _c.onPanUpdate(d.localPosition),
                               onPanEnd: (DragEndDetails d) => _c.onPanEnd(),
                               onPanCancel: _c.onPanCancel,
-                              child: CustomPaint(
-                                size: Size(cons.maxWidth, cons.maxHeight),
-                                painter: CrPainter(_c, _images,
-                                    accent: theme.accent,
-                                    accentSecondary: theme.accentSecondary,
-                                    error: scheme.error),
+                              child: SizedBox(
+                                width: cons.maxWidth,
+                                height: cons.maxHeight,
+                                child: GameWidget<NxFlameHost>(game: _host),
                               ),
                             );
                             // Online seat 1: board rotated so your baseline is at the bottom.

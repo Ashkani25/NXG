@@ -5,6 +5,7 @@
 import 'dart:math' as math;
 
 import 'bm_data.dart';
+import 'bm_stats.dart';
 
 // ---------------------------------------------------------------- constants (game.js line 4-6)
 const double K = 1.27, PR = 63.8, BR = 28.8, STEP = 1 / 240, RC = 70, LMAX = 320;
@@ -100,12 +101,15 @@ class BmTrailPt {
 }
 
 class BmBody {
-  BmBody(this.x, this.y, this.team, this.r, this.m, {this.power = 0}) : im = 1 / m;
+  BmBody(this.x, this.y, this.team, this.r, this.m, {this.power = 0, this.accuracy = 10}) : im = 1 / m;
   double x, y, vx = 0, vy = 0;
   final double r, m, im;
   final int team;
-  /// Per-piece strike rating. 0 is reserved for the ball; player pieces are 1..10.
+  /// Disc Power stat (bm_stats.dart). 0 is reserved for the ball; player pieces are 1..10.
   int power;
+
+  /// Disc Accuracy stat 1..10 (10 = no aim deviation).
+  int accuracy;
   double spin = 0, ang = 0, sq = 0, boost = 0;
   final List<double> R = <double>[1, 0, 0, 0, 1, 0, 0, 0, 1];
   int rv = 0;
@@ -159,6 +163,7 @@ class BmConfig {
     this.aiLvl = 1,
     this.mirror = false,
     this.first = 0,
+    this.seed = 0,
   });
   final String mode; // 'local' | 'bot' | 'online'
   final List<String> teams; // global team ids
@@ -168,6 +173,9 @@ class BmConfig {
   final double turnTime;
   final bool ai, mirror;
   final int aiLvl;
+
+  /// Match seed for the deterministic aim deviation (Accuracy stat).
+  final int seed;
 }
 
 /// Callbacks the engine fires (sound, haptics, toast, network, end).
@@ -255,8 +263,18 @@ class BmEngine {
     GOALS = <BmGoal>[BmGoal(0, Ft, CX - f.g, CX + f.g, -1), BmGoal(1, Fb, CX - f.g, CX + f.g, 1)];
   }
 
-  BmBody mk(double x, double y, int team, double r, double m) =>
-      BmBody(x, y, team, r, m, power: team == 2 ? 0 : 1 + rnd.nextInt(10));
+  /// [team] is the local side; the disc (and its stable stats) belongs to global seat ct(team).
+  BmBody mk(double x, double y, int team, double r, double m) {
+    if (team == 2) return BmBody(x, y, team, r, m);
+    final BmDiscStats st = bmDiscStats(sel[ct(team)]);
+    return BmBody(x, y, team, r, m, power: st.power, accuracy: st.accuracy);
+  }
+
+  /// Seed + running shot number feeding the deterministic aim deviation.
+  int aimSeed = 0, aimShot = 0;
+
+  /// Deviation (degrees) applied to the last fired shot, for tests / debugging.
+  double lastAimDevDeg = 0;
 
   void reset(int k) {
     bodies = <BmBody>[];
@@ -723,14 +741,27 @@ class BmEngine {
 
   void fire(BmBody b, double dx, double dy, double l) {
     final double p = _mn(l, LMAX) / LMAX;
-    // Rating is physical: 1 => 0.65x impulse, 5 => 1.05x, 10 => 1.55x.
-    // It is applied before launch, not merely displayed in the UI.
-    final double strike = .55 + b.power * .1;
+    // Disc stats are physical (bm_stats.dart), for human and bot shots alike:
+    // Power scales the speed (1 => x0.82 ... 10 => x1.18); Accuracy rotates the aim by a
+    // deterministic deviation (10 => 0 deg, 1 => up to +/-7 deg at full pull).
+    final double strike = bmPowerFactor(b.power);
     final double v = (260 + 1085 * math.pow(p, .8).toDouble()) * K * 1.32 * strike;
-    final double vx = dx / l * v, vy = dy / l * v;
+    final double dev = bmAimDeviationDeg(b.accuracy, p, bmAimNoise(aimSeed, aimShot++, b.cid));
+    lastAimDevDeg = dev;
+    final double ra = dev * math.pi / 180, cs = math.cos(ra), sn = math.sin(ra);
+    final double ux = dx / l, uy = dy / l;
+    final double vx = (ux * cs - uy * sn) * v, vy = (ux * sn + uy * cs) * v;
     launch(b, vx, vy, false);
     final int sg = mirror ? -1 : 1;
-    hooks.emit('shot', <String, dynamic>{'cid': b.cid, 'vx': vx * sg, 'vy': vy * sg, 'team': ct(b.team), 'power': b.power});
+    // The deviated velocity is what goes on the wire, so the other client replays it exactly.
+    hooks.emit('shot', <String, dynamic>{
+      'cid': b.cid,
+      'vx': vx * sg,
+      'vy': vy * sg,
+      'team': ct(b.team),
+      'power': b.power,
+      'acc': b.accuracy,
+    });
   }
 
   void finishTurn(bool emitSnap) {
@@ -1148,6 +1179,8 @@ class BmEngine {
     mleft = mt.toDouble();
     sd = false;
     sel = List<String>.from(cfg.teams);
+    aimSeed = cfg.seed;
+    aimShot = 0;
     form = List<int>.from(cfg.form);
     setFld = cfg.field;
     setBall = cfg.ball;

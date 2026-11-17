@@ -1,11 +1,12 @@
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 
+import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 
 import '../../../core/theme/nx_theme.dart';
+import '../../core/flame/nx_flame.dart';
 import '../../core/game_contract.dart';
 import '../core/pool_bot.dart';
 import '../core/pool_config.dart';
@@ -21,8 +22,9 @@ enum _Stage { aiming, striking, rolling, over }
 
 enum _BotStage { idle, thinking, aiming, charging }
 
-/// 8-ball billiards: Ticker drives fixed 1/120 s physics steps of the pure core,
-/// CustomPainter draws, gestures become [PoolShot]s.
+/// 8-ball billiards: a Flame host ([NxFlameHost]) drives fixed 1/120 s physics steps of the
+/// pure core, renders the scene painter plus Flame effects (fire on fast balls, pocket spark
+/// rings, win burst); gestures and HUD stay Flutter widgets and become [PoolShot]s.
 class BilliardsGame extends StatefulWidget {
   const BilliardsGame({super.key, required this.launch});
   final GameLaunch launch;
@@ -31,8 +33,7 @@ class BilliardsGame extends StatefulWidget {
   State<BilliardsGame> createState() => _BilliardsGameState();
 }
 
-class _BilliardsGameState extends State<BilliardsGame>
-    with SingleTickerProviderStateMixin {
+class _BilliardsGameState extends State<BilliardsGame> {
   NxThemeColors _theme = NxThemeColors.gold;
   int _skin = poolSkinIndex();
 
@@ -45,10 +46,11 @@ class _BilliardsGameState extends State<BilliardsGame>
 
   late final PoolMatch _match;
   late final PoolScene _scene;
-  late final Ticker _ticker;
+  late final NxFlameHost _host;
   late final math.Random _rng;
-  Duration _last = Duration.zero;
-  double _acc = 0;
+
+  /// Table art px -> screen px (tw / artW), set by the layout.
+  double _artScale = 0;
 
   _Stage _stage = _Stage.aiming;
   PoolShot? _pending;
@@ -236,7 +238,12 @@ class _BilliardsGameState extends State<BilliardsGame>
     _match.world.onImpact = _onImpact;
     _match.world.onPocket = _onPocket;
     _syncScene();
-    _ticker = createTicker(_onTick)..start();
+    _host = NxFlameHost(
+      step: PoolConfig.dt,
+      onStep: _onStep,
+      onFrame: _onFrame,
+      fxConfig: NxFxConfig.of(fancyEffects: _l.fancyEffects, reducedMotion: _l.reducedMotion),
+    );
     _bannerText = _l.tx(
         'بریک: ${_name(_match.current)}', 'Break: ${_name(_match.current)}');
     _bannerColor = _match.current == 0 ? _p0Color : _p1Color;
@@ -259,7 +266,6 @@ class _BilliardsGameState extends State<BilliardsGame>
   @override
   void dispose() {
     _inbox?.close();
-    _ticker.dispose();
     _match.world.onImpact = null;
     _match.world.onPocket = null;
     _scene.dispose();
@@ -298,7 +304,17 @@ class _BilliardsGameState extends State<BilliardsGame>
     _haptic(0);
   }
 
+  Offset _toScreen(double x, double y) => Offset(
+      (x + PoolConfig.artClothLeft) * _artScale, (y + PoolConfig.artClothTop) * _artScale);
+
   void _onPocket(int id, int pocket) {
+    if (_artScale > 0) {
+      _host.fx.ring(
+          _toScreen(PoolConfig.pockets[pocket][0], PoolConfig.pockets[pocket][1]),
+          id == 0 ? NxColors.danger : (id == 8 ? NxColors.violet : NxColors.gold),
+          count: 12,
+          radius: 44 * _artScale);
+    }
     _scene.flashes.add(PoolFlash(
         pocket,
         id == 0
@@ -370,11 +386,41 @@ class _BilliardsGameState extends State<BilliardsGame>
   }
 
   // ---------------------------------------------------------------- loop
-  void _onTick(Duration elapsed) {
-    double dt = (elapsed - _last).inMicroseconds / 1e6;
-    _last = elapsed;
-    if (dt > 0.05) dt = 0.05;
-    if (dt < 0) dt = 0;
+  /// One fixed 1/120 s physics step (only while the balls roll).
+  void _onStep(double step) {
+    if (!mounted || _stage != _Stage.rolling) return;
+    if (_match.world.tick()) _onShotDone();
+  }
+
+  /// Fire behind the cue ball and the fastest object ball on hard shots (render-only).
+  void _fireFx(double dt) {
+    if (_artScale <= 0 || !_host.fx.config.enabled) return;
+    PoolBall? fastest;
+    double best = 0;
+    for (final PoolBall b in _match.balls) {
+      if (b.pocketed) continue;
+      final double sp = math.sqrt(b.vx * b.vx + b.vy * b.vy);
+      if (b.isCue) {
+        if (sp > 1700) {
+          final Offset p = _toScreen(b.x, b.y);
+          _host.fx.fireTrail(p.dx, p.dy, b.vx * _artScale, b.vy * _artScale, (sp - 1700) / 2400, dt,
+              slot: 0, size: (_artScale * 2.4).clamp(.6, 1.8).toDouble());
+        }
+      } else if (sp > best) {
+        best = sp;
+        fastest = b;
+      }
+    }
+    final PoolBall? f = fastest;
+    if (f != null && best > 1900) {
+      final Offset p = _toScreen(f.x, f.y);
+      _host.fx.fireTrail(p.dx, p.dy, f.vx * _artScale, f.vy * _artScale, (best - 1900) / 2200, dt,
+          slot: 1, size: (_artScale * 2.4).clamp(.6, 1.8).toDouble());
+    }
+  }
+
+  void _onFrame(double dt) {
+    if (!mounted) return;
 
     if (_bannerLeft > 0) {
       _bannerLeft -= dt;
@@ -402,14 +448,7 @@ class _BilliardsGameState extends State<BilliardsGame>
       case _Stage.rolling:
         _scene.cueOpacity = math.max(0.0, _scene.cueOpacity - dt * 3.5);
         if (_scene.cueOpacity <= 0) _scene.showCue = false;
-        _acc += dt;
-        while (_acc >= PoolConfig.dt) {
-          _acc -= PoolConfig.dt;
-          if (_match.world.tick()) {
-            _onShotDone();
-            break;
-          }
-        }
+        _fireFx(dt);
         break;
       case _Stage.over:
         break;
@@ -550,7 +589,7 @@ class _BilliardsGameState extends State<BilliardsGame>
           NxColors.electricBlue,
           _rng);
     }
-    _acc = 0;
+    _host.accumulator = 0;
     _stage = _Stage.rolling;
     _scene.ballInHand = false;
     _scene.showAim = false;
@@ -587,6 +626,11 @@ class _BilliardsGameState extends State<BilliardsGame>
       }
       _showBanner(_l.tx(fa, en), w == 0 ? _p0Color : _p1Color, seconds: 3);
       _endWait = 2.0;
+      if (_artScale > 0 && ((!_l.vsBot && !_l.online) || w == _l.mySeat)) {
+        final Offset c = _toScreen(PoolConfig.tableW / 2, PoolConfig.tableH / 2);
+        _host.fx.burst(c, count: 64, speed: 480, life: 1.5);
+        _host.fx.fireBurst(Offset(c.dx, c.dy + 170 * _artScale), count: 40, size: 1.6);
+      }
       return;
     }
     _stage = _Stage.aiming;
@@ -797,6 +841,13 @@ class _BilliardsGameState extends State<BilliardsGame>
                 math.min(availW / PoolConfig.artW, availH / PoolConfig.artH));
             _s = s;
             final double tw = PoolConfig.artW * s, th = PoolConfig.artH * s;
+            _artScale = s;
+            _host.painter = PoolScenePainter(
+              _scene,
+              accent: _theme.accent,
+              accentSecondary: _theme.accentSecondary,
+              error: scheme.error,
+            );
             final double left = (box.maxWidth - tw) / 2;
             final double top = topH + math.max(0.0, (availH - th) / 2);
             return Stack(
@@ -830,14 +881,7 @@ class _BilliardsGameState extends State<BilliardsGame>
                               painter: PoolTableFallbackPainter(accent: _theme.accent)),
                         ),
                         RepaintBoundary(
-                          child: CustomPaint(
-                            painter: PoolScenePainter(
-                              _scene,
-                              accent: _theme.accent,
-                              accentSecondary: _theme.accentSecondary,
-                              error: scheme.error,
-                            ),
-                          ),
+                          child: GameWidget<NxFlameHost>(game: _host),
                         ),
                       ],
                     ),

@@ -4,19 +4,23 @@ import 'dart:async';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 
+import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:nexora/core/theme/nx_theme.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:nexora/games/core/flame/nx_flame.dart';
 import 'package:nexora/games/core/game_contract.dart';
 import '../core/bm_data.dart';
 import '../core/bm_engine.dart';
+import '../core/bm_goal_art.dart';
 import 'bm_anim_ball_preview.dart';
 import 'bm_audio.dart';
 import 'bm_ball.dart';
 import 'bm_painter.dart';
+import 'bm_stat_bars.dart';
 
 const String _a = 'assets/games/bermuda/';
 
@@ -66,9 +70,20 @@ class _BermudaViewState extends State<BermudaView>
   final BmView view = BmView();
   late final BmAudio audio = BmAudio(enabled: widget.launch.soundOn);
   final ValueNotifier<int> _frame = ValueNotifier<int>(0);
-  late final Ticker _ticker;
+
+  /// Setup / waiting screens only (menu audio queue); the match itself runs on [_host].
+  late final Ticker _menuTicker;
   Duration _last = Duration.zero;
   double _nowMs = 0;
+
+  /// Flame host of the match: drives the engine every frame (the engine keeps its own fixed
+  /// 1/240 s accumulator, so it gets the raw frame dt exactly like the old Ticker did), renders
+  /// [BmPainter] and the Flame effects (fire trail on fast shots, goal / win bursts).
+  late final NxFlameHost _host = NxFlameHost(
+    onFrame: _onFrame,
+    rawFrameDt: true,
+    fxConfig: NxFxConfig.of(fancyEffects: launch.fancyEffects, reducedMotion: launch.reducedMotion),
+  );
   late final AnimationController _goalAnim =
       AnimationController(vsync: this, duration: const Duration(seconds: 2));
 
@@ -77,6 +92,9 @@ class _BermudaViewState extends State<BermudaView>
   late _Setup my = _Setup('club0', 0, 0, 0);
   int _cat = 0;
   BmConfig? cfg;
+
+  /// Goal model (local cosmetic, kBmGoalArts): 0 green (default), 1 white hex.
+  int _goalStyle = kBmGoalDefault;
 
   // toast
   String _toast = '';
@@ -105,7 +123,7 @@ class _BermudaViewState extends State<BermudaView>
   @override
   void initState() {
     super.initState();
-    _ticker = createTicker(_onTick)..start();
+    _menuTicker = createTicker(_onMenuTick)..start();
     WidgetsBinding.instance.addObserver(this);
     unawaited(audio.init());
     unawaited(_loadPrefs());
@@ -138,6 +156,7 @@ class _BermudaViewState extends State<BermudaView>
           (p.getInt('bm.ball') ?? 0).clamp(0, kBmBallCount - 1).toInt());
       _cat = math.max(0,
           kBmCats.indexWhere((List<Object> c) => c[0] == bmTeam(my.team).cat));
+      _goalStyle = (p.getInt('bm.goal') ?? kBmGoalDefault).clamp(0, kBmGoalArts.length - 1).toInt();
       audio.announcer = p.getBool('bm.ann') ??
           false; // goal announcer voice: off unless the player turns it on
       if (mounted) setState(() {});
@@ -151,15 +170,26 @@ class _BermudaViewState extends State<BermudaView>
       await p.setInt('bm.form', my.form);
       await p.setInt('bm.field', my.field);
       await p.setInt('bm.ball', my.ball);
+      await p.setInt('bm.goal', _goalStyle);
     } catch (_) {}
   }
 
   // ------------------------------------------------------------------ loop
-  void _onTick(Duration el) {
+  void _onMenuTick(Duration el) {
     double dt = (el - _last).inMicroseconds / 1e6;
     _last = el;
     if (dt < 0) dt = 0;
-    _nowMs = el.inMicroseconds / 1000;
+    if (stage == 'match' || _disposed) return;
+    audio.frame(dt);
+    if (_toastT > 0) _toastT -= dt;
+    _frame.value++;
+  }
+
+  /// One Flame frame of the match ([dt] is the raw frame time; [NxFlameHost.clock] is the
+  /// monotonic wall clock the animated GIF balls use, same as the Ticker's elapsed time before).
+  void _onFrame(double dt) {
+    if (_disposed) return;
+    _nowMs = _host.clock * 1000;
     audio.frame(dt);
     if (_toastT > 0) _toastT -= dt;
     if (stage == 'match') {
@@ -176,9 +206,39 @@ class _BermudaViewState extends State<BermudaView>
         _finishIn -= dt;
         if (_finishIn <= 0) _report();
       }
+      _fireFx(dt);
     }
     if (_disposed) return;
     _frame.value++;
+  }
+
+  Offset _toScreen(double x, double y) => Offset(x * view.s + view.ox, y * view.s + view.oy);
+
+  /// Flame fire behind the ball and the fastest disc while they move fast (render-only).
+  void _fireFx(double dt) {
+    if (!_host.fx.config.enabled || e.menuOpen || e.phase != 'move' || view.s <= 0) return;
+    final double size = (BR * view.s / 9).clamp(.6, 2.2).toDouble();
+    BmBody? fastest;
+    double best = 0;
+    for (final BmBody b in e.bodies) {
+      final double sp = math.sqrt(b.vx * b.vx + b.vy * b.vy);
+      if (identical(b, e.ball)) {
+        if (sp > 1400) {
+          final Offset p = _toScreen(b.x, b.y);
+          _host.fx.fireTrail(p.dx, p.dy, b.vx * view.s, b.vy * view.s, (sp - 1400) / 1400, dt,
+              slot: 0, size: size);
+        }
+      } else if (sp > best) {
+        best = sp;
+        fastest = b;
+      }
+    }
+    final BmBody? d = fastest;
+    if (d != null && best > 1750) {
+      final Offset p = _toScreen(d.x, d.y);
+      _host.fx.fireTrail(p.dx, p.dy, d.vx * view.s, d.vy * view.s, (best - 1750) / 1200, dt,
+          slot: 1, size: size * 1.3);
+    }
   }
 
   void _ensureBallRenderer() {
@@ -227,6 +287,13 @@ class _BermudaViewState extends State<BermudaView>
   void goalFx() {
     if (_disposed) return;
     _goalAnim.forward(from: 0);
+    // Flame celebration where the ball went in: confetti + a burst of real fire.
+    final BmBody? b = e.ball;
+    final Offset at = b != null && view.s > 0
+        ? _toScreen(b.x, b.y)
+        : Offset(view.size.width / 2, view.size.height / 2);
+    _host.fx.burst(at, count: 46, speed: 380);
+    _host.fx.fireBurst(at, count: 36);
   }
 
   @override
@@ -240,6 +307,7 @@ class _BermudaViewState extends State<BermudaView>
           'vx': data['vx'],
           'vy': data['vy'],
           'power': data['power'],
+          'acc': data['acc'],
         }, kind: 'move');
         break;
       case 'settled':
@@ -301,6 +369,7 @@ class _BermudaViewState extends State<BermudaView>
       turnTime: 0,
       ai: bot,
       aiLvl: lvl,
+      seed: launch.seed ?? 0,
     ));
   }
 
@@ -326,6 +395,7 @@ class _BermudaViewState extends State<BermudaView>
           turnTime: kBmOnlineTurnSeconds,
           mirror: mySeat == 1,
           first: 0,
+          seed: launch.seed ?? 0,
         ),
         quiet: quiet);
   }
@@ -343,6 +413,7 @@ class _BermudaViewState extends State<BermudaView>
 
   void _begin(BmConfig c, {bool quiet = false}) {
     cfg = c;
+    _menuTicker.stop();
     e.startMatch(c);
     if (quiet) e.menuOpen = false;
     stage = 'match';
@@ -369,9 +440,10 @@ class _BermudaViewState extends State<BermudaView>
 
   Future<void> _loadMatchImages(BmConfig c) async {
     final BmFieldS f = kBmFields[c.field];
+    final BmGoalArt goalArt = kBmGoalArts[_goalStyle];
     final List<ui.Image?> r = await Future.wait(<Future<ui.Image?>>[
       _img('${_a}fields/${f.id}.webp'),
-      _img('${_a}goals/${f.gs}.webp'),
+      _img(goalArt.asset),
       _img('${_a}balls/b${c.ball}.webp'),
       _img(bmTeam(c.teams[e.ct(0)]).asset, w: 192),
       _img(bmTeam(c.teams[e.ct(1)]).asset, w: 192),
@@ -394,6 +466,7 @@ class _BermudaViewState extends State<BermudaView>
     im.dispose();
     im.field = r[0];
     im.goal = r[1];
+    im.goalArt = goalArt;
     im.ball = r[2];
     if (anim != null && sheet != null) {
       im.ballSheet = sheet;
@@ -407,6 +480,13 @@ class _BermudaViewState extends State<BermudaView>
   void _end(List<int> local) {
     if (_finishIn > 0 || _reported) return;
     _finishIn = 1.6;
+    // Win celebration (local score: [me, opponent]; any decided local 2-player match).
+    final bool iWon = e.score[0] > e.score[1];
+    if (iWon || (!online && !launch.vsBot && e.score[0] != e.score[1])) {
+      final Offset c = Offset(view.size.width / 2, view.size.height * .38);
+      _host.fx.burst(c, count: 70, speed: 520, life: 1.5);
+      _host.fx.fireBurst(Offset(c.dx, view.size.height * .62), count: 44, size: 1.8);
+    }
     unawaited(audio.crowd(false));
   }
 
@@ -651,7 +731,7 @@ class _BermudaViewState extends State<BermudaView>
   void dispose() {
     _disposed = true;
     WidgetsBinding.instance.removeObserver(this);
-    _ticker.dispose();
+    _menuTicker.dispose();
     _goalAnim.dispose();
     _inbox?.close();
     for (final Completer<void> c in _waiters) {
@@ -673,6 +753,7 @@ class _BermudaViewState extends State<BermudaView>
     }
     final double dpr = math.min(MediaQuery.devicePixelRatioOf(context), 1.75);
     final bool fancy = launch.fancyEffects && !launch.reducedMotion;
+    _host.painter = BmPainter(e, im, view, () => _nowMs, dpr, fancy, repaint: _frame);
     return Directionality(
       textDirection: TextDirection.ltr,
       child: ColoredBox(
@@ -691,11 +772,7 @@ class _BermudaViewState extends State<BermudaView>
               },
               onPointerUp: (_) => e.pointerUp(),
               onPointerCancel: (_) => e.pointerCancel(),
-              child: CustomPaint(
-                painter: BmPainter(e, im, view, () => _nowMs, dpr, fancy,
-                    repaint: _frame),
-                size: Size.infinite,
-              ),
+              child: GameWidget<NxFlameHost>(game: _host),
             ),
           ),
           // vignette (#vig)
@@ -1050,6 +1127,51 @@ class _BermudaViewState extends State<BermudaView>
     );
   }
 
+  /// The selected disc with its Power / Accuracy (they change the shot, see bm_stats.dart).
+  Widget _selectedDisc(NxThemeColors visual) {
+    final BmTeam t = bmTeam(my.team);
+    return Container(
+      padding: const EdgeInsets.all(9),
+      decoration: BoxDecoration(
+        color: visual.background.withValues(alpha: .5),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: visual.accent.withValues(alpha: .4)),
+      ),
+      child: Row(
+        children: <Widget>[
+          SizedBox(width: 50, height: 50, child: Image.asset(t.asset, cacheWidth: 128)),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                Text(t.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(color: visual.text, fontSize: 13, fontWeight: FontWeight.w900)),
+                const SizedBox(height: 5),
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: AlignmentDirectional.centerStart,
+                  child: BmDiscStatBars(
+                    discId: t.id,
+                    powerLabel: launch.tx('قدرت', 'Power'),
+                    accuracyLabel: launch.tx('دقت', 'Accuracy'),
+                    powerColor: const Color(0xFFFF8A3D),
+                    accuracyColor: const Color(0xFF3DC8FF),
+                    track: visual.border.withValues(alpha: .35),
+                    textColor: visual.text,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   // ------------------------------------------------------------------ setup screen
   Widget _setupScreen(BuildContext context) {
     final bool waiting = stage == 'waiting' || (online && !_netReady);
@@ -1220,8 +1342,10 @@ class _BermudaViewState extends State<BermudaView>
                         ),
                       ),
                       const SizedBox(height: 10),
+                      _selectedDisc(visual),
+                      const SizedBox(height: 10),
                       SizedBox(
-                        height: 106,
+                        height: 132,
                         child: ListView.builder(
                           scrollDirection: Axis.horizontal,
                           itemCount: teams.length,
@@ -1274,6 +1398,17 @@ class _BermudaViewState extends State<BermudaView>
                                                 on ? visual.text : visual.muted,
                                             fontSize: 10,
                                             fontWeight: FontWeight.w800)),
+                                    const SizedBox(height: 3),
+                                    BmDiscStatBars(
+                                      discId: t.id,
+                                      compact: true,
+                                      powerLabel: launch.tx('قدرت', 'POW'),
+                                      accuracyLabel: launch.tx('دقت', 'ACC'),
+                                      powerColor: const Color(0xFFFF8A3D),
+                                      accuracyColor: const Color(0xFF3DC8FF),
+                                      track: visual.border.withValues(alpha: .35),
+                                      textColor: on ? visual.text : visual.muted,
+                                    ),
                                     if (on)
                                       Container(
                                           margin: const EdgeInsets.only(top: 3),
@@ -1315,6 +1450,61 @@ class _BermudaViewState extends State<BermudaView>
                                 audio.sfx('ui');
                                 unawaited(_savePrefs());
                               }),
+                            ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                section(
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      sectionTitle(launch.tx('دروازه', 'GOAL'),
+                          launch.tx('مدل دروازه', 'Goal model'), Icons.sports_score_outlined),
+                      Row(
+                        children: <Widget>[
+                          for (int i = 0; i < kBmGoalArts.length; i++)
+                            Expanded(
+                              child: GestureDetector(
+                                onTap: () => setState(() {
+                                  _goalStyle = i;
+                                  audio.sfx('ui');
+                                  unawaited(_savePrefs());
+                                }),
+                                child: AnimatedContainer(
+                                  duration: const Duration(milliseconds: 160),
+                                  height: 78,
+                                  margin: EdgeInsets.only(right: i == 0 ? 8 : 0),
+                                  padding: const EdgeInsets.all(7),
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(14),
+                                    color: _goalStyle == i
+                                        ? visual.accent.withValues(alpha: .12)
+                                        : const Color(0xFF2E7D3A).withValues(alpha: .55),
+                                    border: Border.all(
+                                        color: _goalStyle == i
+                                            ? visual.accent
+                                            : visual.border.withValues(alpha: .42),
+                                        width: _goalStyle == i ? 1.6 : 1),
+                                  ),
+                                  child: Column(
+                                    children: <Widget>[
+                                      Expanded(
+                                          child: Image.asset(kBmGoalArts[i].asset,
+                                              cacheWidth: 240, fit: BoxFit.contain)),
+                                      const SizedBox(height: 3),
+                                      Text(launch.tx(kBmGoalArts[i].nameFa, kBmGoalArts[i].nameEn),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: TextStyle(
+                                              color: _goalStyle == i ? visual.text : visual.muted,
+                                              fontSize: 10.5,
+                                              fontWeight: FontWeight.w800)),
+                                    ],
+                                  ),
+                                ),
+                              ),
                             ),
                         ],
                       ),

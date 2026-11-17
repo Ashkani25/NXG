@@ -7,10 +7,14 @@ import 'package:flutter/material.dart';
 
 import '../core/bm_data.dart';
 import '../core/bm_engine.dart';
+import '../core/bm_goal_art.dart';
 import 'bm_ball.dart';
 
 class BmImages {
   ui.Image? field, goal, ball;
+
+  /// Model of [goal] (one of the two kBmGoalArts).
+  BmGoalArt goalArt = kBmGoalArts[kBmGoalDefault];
   // Animated sprite-sheet ball (kBmAnimBalls): plays exactly like the owner's GIF — frames in order at the GIF's own
   // frame time, continuously, never rotated/flipped/stretched by velocity or seat.
   ui.Image? ballSheet;
@@ -127,17 +131,19 @@ class BmPainter extends CustomPainter {
     }
     if (e.ball != null) _sprite(canvas, e.ball!, t);
     // goals (drawn over the ball: the net covers it)
+    // Only the two goal models exist (bm_goal_art.dart); post feet sit on the collision posts.
     final ui.Image? gi = im.goal;
     if (gi != null) {
       for (final BmGoal g in e.GOALS) {
-        final double gx = e.GGx + math.sin(t / 25) * 8 * e.shake[g.team];
-        final double gy = g.d < 0 ? g.y - e.GGh - 2 : g.y + 2;
-        final Rect dst = Rect.fromLTWH(gx, gy, e.GGw, e.GGh);
+        final double sx = math.sin(t / 25) * 8 * e.shake[g.team];
+        final r = bmGoalArtRect(im.goalArt, gi.width, gi.height, (g.x1 + g.x2) / 2 + sx, (g.x2 - g.x1) / 2, g.y);
+        final Rect dst = Rect.fromLTWH(r.left, r.top, r.width, r.height);
         final Rect src = Rect.fromLTWH(0, 0, gi.width.toDouble(), gi.height.toDouble());
         final Paint p = Paint()..filterQuality = FilterQuality.medium;
         if (g.d > 0) {
+          // bottom goal: the top art mirrored about its own goal line
           canvas.save();
-          canvas.translate(0, gy * 2 + e.GGh);
+          canvas.translate(0, g.y * 2);
           canvas.scale(1, -1);
           canvas.drawImageRect(gi, src, dst, p);
           canvas.restore();

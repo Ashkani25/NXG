@@ -64,7 +64,7 @@ flutter:
     - assets/games/carrom/
     - assets/games/bermuda/balls/
     - assets/games/bermuda/fields/
-    - assets/games/bermuda/goals/
+    - assets/games/finger_soccer/goals/
     - assets/games/bermuda/sfx/
     - assets/games/bermuda/teams/
     - assets/games/bermuda/thumbs/

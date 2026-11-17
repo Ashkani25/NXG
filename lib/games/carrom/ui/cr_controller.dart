@@ -473,8 +473,27 @@ class CrController extends ChangeNotifier {
     _pushHud();
   }
 
+  // ------------------------------------------------------------- Flame FX hooks (render-only)
+  /// Set by the view when a Flame effects layer is present: pocket bursts go there (board units)
+  /// instead of the built-in particles.
+  void Function(double x, double y, Color color)? onPocketFx;
+
+  /// Celebration (queen covered / win) on the Flame layer; CrFx keeps its flash and shake.
+  void Function(bool win)? onCelebrate;
+
   // ------------------------------------------------------------- loop
-  void tick(double dt) {
+  /// Self-contained frame: timers + its own fixed-step accumulator (tests, no Flame host).
+  void tick(double dt) => frame(dt, simulate: true);
+
+  /// One fixed [CrConfig.dt] step of the running shot; driven by the Flame host's accumulator.
+  void simStep() {
+    if (_disposed || match.phase != CrPhase.simulating) return;
+    _simOnce();
+  }
+
+  /// Per-frame work (timers, bot, fx, HUD). With [simulate] it also runs the shot simulation
+  /// from its own accumulator; under the Flame host the simulation comes from [simStep].
+  void frame(double dt, {bool simulate = false}) {
     if (_disposed) return;
     clock += dt;
     fx.update(dt);
@@ -491,7 +510,7 @@ class CrController extends ChangeNotifier {
         _tickAiming(dt);
         break;
       case CrPhase.simulating:
-        _tickSim(dt);
+        if (simulate) _tickSim(dt);
         break;
       case CrPhase.finished:
         if (_finishDelay > 0) {
@@ -600,22 +619,29 @@ class CrController extends ChangeNotifier {
     if (sim == null) return;
     while (_acc >= CrConfig.dt) {
       _acc -= CrConfig.dt;
-      final finished = sim.tick();
-      _drainImpacts();
-      _drainPockets(sim);
-      final st = match.striker;
-      if (fx.enabled && st.onBoard && sim.steps % 2 == 0) {
-        trail.add(Offset(st.x, st.y));
-        if (trail.length > 14) trail.removeAt(0);
-      }
-      if (finished) {
-        final out = match.finishShot(sim.pocketed, sim.steps);
-        _sim = null;
-        _afterShot(out);
-        _postSettle();
-        break;
-      }
+      if (_simOnce()) break;
     }
+  }
+
+  /// One deterministic simulation step plus its render bookkeeping. True when the shot ended.
+  bool _simOnce() {
+    final sim = _sim;
+    if (sim == null) return true;
+    final finished = sim.tick();
+    _drainImpacts();
+    _drainPockets(sim);
+    final st = match.striker;
+    if (fx.enabled && st.onBoard && sim.steps % 2 == 0) {
+      trail.add(Offset(st.x, st.y));
+      if (trail.length > 14) trail.removeAt(0);
+    }
+    if (finished) {
+      final out = match.finishShot(sim.pocketed, sim.steps);
+      _sim = null;
+      _afterShot(out);
+      _postSettle();
+    }
+    return finished;
   }
 
   void _drainImpacts() {
@@ -652,9 +678,14 @@ class CrController extends ChangeNotifier {
         CrKind.white => kCrSeat0,
         CrKind.black => kCrSeat1,
       };
-      fx.burst(p.dx, p.dy, count: 22, speed: 300, color: c, size: 6, life: 0.7);
-      fx.burst(p.dx, p.dy,
-          count: 10, speed: 200, color: kCrGold, size: 4, life: 0.6);
+      final pocketFx = onPocketFx;
+      if (pocketFx != null) {
+        pocketFx(p.dx, p.dy, c);
+      } else {
+        fx.burst(p.dx, p.dy, count: 22, speed: 300, color: c, size: 6, life: 0.7);
+        fx.burst(p.dx, p.dy,
+            count: 10, speed: 200, color: kCrGold, size: 4, life: 0.6);
+      }
       if (launch.soundOn) HapticFeedback.mediumImpact();
     }
   }
@@ -690,8 +721,12 @@ class CrController extends ChangeNotifier {
       _banner('ملکه پوشش داده شد!', 'Queen covered!', kCrGold);
       fx.doFlash(kCrGold, 0.45);
       fx.shake(8);
-      fx.burst(CrConfig.centerX, CrConfig.centerY,
-          count: 40, speed: 520, color: kCrGold, size: 7, life: 1.0);
+      if (onCelebrate != null) {
+        onCelebrate!(false);
+      } else {
+        fx.burst(CrConfig.centerX, CrConfig.centerY,
+            count: 40, speed: 520, color: kCrGold, size: 7, life: 1.0);
+      }
       if (launch.soundOn) HapticFeedback.heavyImpact();
     } else if (o.queenPending) {
       _say(
@@ -740,20 +775,28 @@ class CrController extends ChangeNotifier {
       final bool won = w == mySeat;
       _banner(won ? 'بردی!' : 'باختی', won ? 'You win!' : 'You lose',
           won ? kCrGold : kCrSeat1);
-      if (won)
-        fx.burst(CrConfig.centerX, CrConfig.centerY,
-            count: 60, speed: 700, color: kCrGold, size: 8, life: 1.3);
+      if (won) _winFx();
     } else if (w == 0) {
       _banner(launch.vsBot ? 'بردی!' : '${seatName(0)} برد',
           launch.vsBot ? 'You win!' : '${seatName(0)} wins', kCrGold);
-      fx.burst(CrConfig.centerX, CrConfig.centerY,
-          count: 60, speed: 700, color: kCrGold, size: 8, life: 1.3);
+      _winFx();
     } else {
       _banner(launch.vsBot ? 'باختی' : '${seatName(1)} برد',
           launch.vsBot ? 'You lose' : '${seatName(1)} wins', kCrSeat1);
+      if (!launch.vsBot) _winFx(); // local 2-player: the winner still gets a celebration
     }
     bannerTime = 2.6;
     _finishDelay = 2.5;
+  }
+
+  void _winFx() {
+    final cb = onCelebrate;
+    if (cb != null) {
+      cb(true);
+    } else {
+      fx.burst(CrConfig.centerX, CrConfig.centerY,
+          count: 60, speed: 700, color: kCrGold, size: 8, life: 1.3);
+    }
   }
 
   void _banner(String fa, String en, Color c) {
