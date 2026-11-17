@@ -20,10 +20,50 @@ class _AuthPageState extends ConsumerState<AuthPage> {
   final TextEditingController _code = TextEditingController();
   bool _sent = false;
   bool _busy = false;
+  bool _google = false;
+  bool _waitingGoogle = false;
   String? _error;
+  OnlineService? _online;
+
+  @override
+  void initState() {
+    super.initState();
+    _online = ref.read(onlineProvider);
+    _online!.addListener(_onAuthChanged);
+    // A Google sign-in that finished while the app was in the background (or the app was restarted mid-flow).
+    WidgetsBinding.instance.addPostFrameCallback((_) => _onAuthChanged());
+    _online!.googleEnabled().then((bool v) {
+      if (mounted && v != _google) setState(() => _google = v);
+    });
+  }
+
+  /// Any real account (Google or email code) that is signed in enters the app.
+  void _onAuthChanged() {
+    if (!mounted) return;
+    final OnlineService online = ref.read(onlineProvider);
+    if (!online.hasAccount) return;
+    final AppSettings s = ref.read(settingsProvider);
+    if (s.authMode == 'email') return;
+    s.setAuthMode('email');
+    final bool hasIdentity = ref.read(profileProvider).hasIdentity;
+    context.go(hasIdentity ? '/hub' : '/onboarding');
+  }
+
+  Future<void> _signInGoogle() async {
+    final OnlineService online = ref.read(onlineProvider);
+    setState(() { _busy = true; _error = null; });
+    final bool opened = await online.signInWithGoogle();
+    if (!mounted) return;
+    setState(() {
+      _busy = false;
+      _waitingGoogle = opened;
+      _error = opened ? null : _friendly(online.lastError);
+    });
+  }
 
   @override
   void dispose() {
+    _online?.removeListener(_onAuthChanged);
     _email.dispose();
     _code.dispose();
     super.dispose();
@@ -52,8 +92,9 @@ class _AuthPageState extends ConsumerState<AuthPage> {
 
   Future<void> _verifyCode() async {
     final String code = _code.text.trim();
-    if (!RegExp(r'^\d{6}$').hasMatch(code)) {
-      setState(() => _error = context.tx('کد باید ۶ رقم باشد.', 'The code must be 6 digits.'));
+    // The project sends 6- or 8-digit codes depending on its auth settings; accept both.
+    if (!RegExp(r'^\d{6,8}$').hasMatch(code)) {
+      setState(() => _error = context.tx('کد ارسال‌شده را کامل وارد کن.', 'Enter the full code from the email.'));
       return;
     }
     final OnlineService online = ref.read(onlineProvider);
@@ -101,10 +142,37 @@ class _AuthPageState extends ConsumerState<AuthPage> {
                     Text(context.tx('ورود به NEXORA', 'Sign in to NEXORA'), textAlign: TextAlign.center,
                         style: TextStyle(color: visual.text, fontSize: 28, fontWeight: FontWeight.w900)),
                     const SizedBox(height: 8),
-                    Text(context.tx('ابتدا ایمیل واقعی‌ات را تأیید کن؛ سپس وارد حساب می‌شوی.',
-                        'Verify your real email first, then enter your account.'), textAlign: TextAlign.center,
+                    Text(_google
+                        ? context.tx('با گوگل یا کد ایمیل وارد شو؛ یک حساب برای همه‌ی بازی‌ها.',
+                            'Sign in with Google or an email code: one account for every game.')
+                        : context.tx('ابتدا ایمیل واقعی‌ات را تأیید کن؛ سپس وارد حساب می‌شوی.',
+                            'Verify your real email first, then enter your account.'), textAlign: TextAlign.center,
                         style: TextStyle(color: visual.muted, height: 1.4)),
                     const SizedBox(height: 22),
+                    if (_google) ...<Widget>[
+                      FilledButton.icon(
+                        onPressed: _busy ? null : _signInGoogle,
+                        style: FilledButton.styleFrom(backgroundColor: Colors.white, foregroundColor: const Color(0xFF1F1F1F),
+                            minimumSize: const Size.fromHeight(50)),
+                        icon: const Text('G', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Color(0xFF4285F4))),
+                        label: Text(context.tx('ادامه با گوگل', 'Continue with Google'),
+                            style: const TextStyle(fontWeight: FontWeight.w800)),
+                      ),
+                      if (_waitingGoogle) Padding(
+                        padding: const EdgeInsets.only(top: 8),
+                        child: Text(context.tx('ورود را در مرورگر تمام کن؛ خودکار برمی‌گردی.',
+                            'Finish signing in in the browser; you will come back automatically.'),
+                            textAlign: TextAlign.center, style: TextStyle(color: visual.muted, fontSize: 12)),
+                      ),
+                      const SizedBox(height: 14),
+                      Row(children: <Widget>[
+                        Expanded(child: Divider(color: visual.border)),
+                        Padding(padding: const EdgeInsets.symmetric(horizontal: 10),
+                            child: Text(context.tx('یا با ایمیل', 'or with email'), style: TextStyle(color: visual.muted, fontSize: 12))),
+                        Expanded(child: Divider(color: visual.border)),
+                      ]),
+                      const SizedBox(height: 14),
+                    ],
                     TextField(
                       controller: _email,
                       enabled: !_busy,
@@ -118,7 +186,7 @@ class _AuthPageState extends ConsumerState<AuthPage> {
                         controller: _code,
                         enabled: !_busy,
                         keyboardType: TextInputType.number,
-                        maxLength: 6,
+                        maxLength: 8,
                         textAlign: TextAlign.center,
                         decoration: InputDecoration(labelText: context.tx('کد ارسال‌شده به ایمیل', 'Code sent to your email'), prefixIcon: const Icon(Icons.password_rounded)),
                       ),

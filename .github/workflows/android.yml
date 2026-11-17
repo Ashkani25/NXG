@@ -139,6 +139,7 @@ jobs:
                   '                <category android:name="android.intent.category.DEFAULT" />\n'
                   '                <category android:name="android.intent.category.BROWSABLE" />\n'
                   '                <data android:scheme="nexora" android:host="t" />\n'
+                  '                <data android:scheme="nexora" android:host="login-callback" />\n'
                   '            </intent-filter>\n'
                   '        </activity>', 1)
           open(m, 'w').write(s)

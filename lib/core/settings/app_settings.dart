@@ -37,6 +37,22 @@ class AppSettings extends ChangeNotifier {
     _notifyInvites = _store.getBool(_kNotifyInvites) ?? true;
     _notifyTournaments = _store.getBool(_kNotifyTournaments) ?? true;
     _oracleOffline = _store.getBool(_kOracleOffline) ?? false;
+    _favoriteGames = (_store.getString(_kFavoriteGames) ?? '')
+        .split(',')
+        .where((String e) => e.isNotEmpty)
+        .toList();
+  }
+
+  static const _kFavoriteGames = 'settings.favorite_games';
+  late List<String> _favoriteGames;
+
+  /// Games picked in onboarding step 3 (shown first in the arcade). Empty = no preference.
+  List<String> get favoriteGames => List<String>.unmodifiable(_favoriteGames);
+
+  set favoriteGames(List<String> ids) {
+    _favoriteGames = ids.toSet().toList();
+    _store.setString(_kFavoriteGames, _favoriteGames.join(','));
+    notifyListeners();
   }
 
   static const _kThemeMode = 'settings.theme_mode';

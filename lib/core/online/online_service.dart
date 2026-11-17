@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -104,6 +106,54 @@ class OnlineService extends ChangeNotifier {
       return true;
     });
     return ok ?? false;
+  }
+
+  /// Deep link the OAuth browser returns to (manifest intent-filter nexora://login-callback, allowed in Supabase).
+  static const String oauthRedirect = 'nexora://login-callback';
+
+  /// Opens Google sign-in in the browser. Returns true when the browser opened; the session arrives later through
+  /// the deep link and [onAuthStateChange] (signedIn).
+  Future<bool> signInWithGoogle() async {
+    final bool? ok = await _run<bool>((SupabaseClient c) => c.auth.signInWithOAuth(
+          OAuthProvider.google,
+          redirectTo: oauthRedirect,
+          authScreenLaunchMode: LaunchMode.externalApplication,
+        ));
+    return ok ?? false;
+  }
+
+  bool? _googleEnabled;
+
+  /// Whether the Supabase project has the Google provider switched on (GET /auth/v1/settings, public).
+  /// Cached after the first answer; false while offline so the button simply stays hidden.
+  Future<bool> googleEnabled() async {
+    if (_googleEnabled != null) return _googleEnabled!;
+    if (!_ready) return false;
+    try {
+      final HttpClient h = HttpClient()..connectionTimeout = const Duration(seconds: 6);
+      final HttpClientRequest rq = await h.getUrl(Uri.parse('${OnlineConfig.supabaseUrl}/auth/v1/settings'));
+      rq.headers.set('apikey', OnlineConfig.supabaseAnonKey);
+      final HttpClientResponse rs = await rq.close().timeout(const Duration(seconds: 8));
+      final Object? j = jsonDecode(await rs.transform(utf8.decoder).join());
+      h.close();
+      final Object? ext = j is Map ? j['external'] : null;
+      _googleEnabled = ext is Map && ext['google'] == true;
+    } catch (e) {
+      debugPrint('auth settings: $e');
+      return false;
+    }
+    return _googleEnabled!;
+  }
+
+  /// A real (non-anonymous) account is signed in: email code or Google.
+  bool get hasAccount => user != null && !isGuest;
+
+  /// 'google', 'email' or null.
+  String? get accountProvider {
+    final User? u = user;
+    if (u == null || u.isAnonymous) return null;
+    final String? p = u.appMetadata['provider'] as String?;
+    return p ?? 'email';
   }
 
   Future<bool> verifyEmailOtp(String email, String token) async {

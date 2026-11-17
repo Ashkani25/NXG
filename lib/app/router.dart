@@ -58,6 +58,11 @@ GoRouter buildRouter(WidgetRef ref) {
       final Uri u = state.uri;
       final bool emailReady = settings.authMode == 'email' && online.user != null && !online.isGuest;
       final bool localGuest = settings.authMode == 'guest';
+      // Google sign-in returns through nexora://login-callback; supabase_flutter reads the code itself, the router
+      // only has to land somewhere sensible (AuthPage then moves on once the session appears).
+      if (u.host == 'login-callback' || u.path == '/login-callback') {
+        return emailReady ? '/hub' : '/auth';
+      }
       if (!emailReady && !localGuest && u.path != '/auth') return '/auth';
       final bool guestOnlineRoute = u.path == '/rooms' ||
           u.path == '/social' ||

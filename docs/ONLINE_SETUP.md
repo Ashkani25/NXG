@@ -33,3 +33,14 @@ supabase secrets set LIVEKIT_API_KEY=... LIVEKIT_API_SECRET=... LLM_API_KEY=...
 
 ## ۴. چیزهایی که فقط بعد از آنلاین فعال می‌شوند (در اپ با برچسب صادقانه مشخص‌اند)
 ورود ایمیل/گوگل و همگام‌سازی، کاربران واقعی و دوستان، چت با دیگران، تماس صوتی/تصویری، بازی آنلاین و Matchmaking، رتبه‌بندی جهانی، پاسخ‌های مدل زبانی ORACLE و ورودی صوتی.
+
+## Google sign-in (free; MVP stage 2)
+The app shows "Continue with Google" only when the auth project (eisstodgncimypdawisy) has the Google provider on
+(`GET /auth/v1/settings` → `external.google`). Until then sign-in is the email code only. To switch it on:
+1. Google Cloud Console → APIs & Services → OAuth consent screen (External, app name NEXORA, your email).
+2. Credentials → Create OAuth client ID → **Web application**.
+   Authorized redirect URI: `https://eisstodgncimypdawisy.supabase.co/auth/v1/callback`
+3. Supabase dashboard → Authentication → Providers → Google: enable, paste Client ID + Client secret, save.
+4. Redirect allow list already contains `nexora://**` (the app returns on `nexora://login-callback`; the Android
+   manifest intent-filter is added by the CI build).
+Email codes: the project currently sends **8-digit** codes; the app accepts 6–8 digits.

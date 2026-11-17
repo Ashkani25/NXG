@@ -26,7 +26,7 @@ class ArcadePage extends ConsumerWidget {
       title: context.tx('همه‌ی بازی‌ها', 'ALL GAMES'),
       palette: WorldPalette.arcade,
       dock: Nx2Tab.games,
-      body: _GamesGrid(profile: p),
+      body: _GamesGrid(profile: p, favorites: ref.watch(settingsProvider).favoriteGames),
     );
   }
 }
@@ -44,8 +44,9 @@ const Map<String, int> _kGameGroup = <String, int>{
 };
 
 class _GamesGrid extends StatefulWidget {
-  const _GamesGrid({required this.profile});
+  const _GamesGrid({required this.profile, this.favorites = const <String>[]});
   final ProfileService profile;
+  final List<String> favorites;
 
   @override
   State<_GamesGrid> createState() => _GamesGridState();
@@ -57,9 +58,14 @@ class _GamesGridState extends State<_GamesGrid> {
   @override
   Widget build(BuildContext context) {
     final ProfileService profile = widget.profile;
-    final List<GameInfo> games = kGames
-        .where((GameInfo g) => _group == 0 || _kGameGroup[g.id] == _group)
-        .toList();
+    final List<String> fav = widget.favorites;
+    final Iterable<GameInfo> shown =
+        kGames.where((GameInfo g) => _group == 0 || _kGameGroup[g.id] == _group);
+    // Onboarding picks first; both halves keep the registry order.
+    final List<GameInfo> games = <GameInfo>[
+      ...shown.where((GameInfo g) => fav.contains(g.id)),
+      ...shown.where((GameInfo g) => !fav.contains(g.id)),
+    ];
     final List<(String, String)> groups = <(String, String)>[
       ('همه', 'All'),
       ('ورزشی', 'Sports'),
