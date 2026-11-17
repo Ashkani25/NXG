@@ -57,7 +57,7 @@ class NovaPostCard extends ConsumerWidget {
                     if (post.editedAt != null) context.tx('ویرایش‌شده', 'edited'),
                     if (post.motion) context.tx('حرکتی', 'motion'),
                   ].join(' · '),
-                  style: const TextStyle(color: NxColors.textDim, fontSize: 12),
+                  style: TextStyle(color: NxColors.textDim, fontSize: 12),
                 ),
               ]),
             ),
@@ -177,11 +177,12 @@ Future<void> shareNovaPostToOrbit(BuildContext context, WidgetRef ref, NovaPost 
 }
 
 class _ActionButton extends StatelessWidget {
-  const _ActionButton({required this.icon, required this.onTap, this.label, this.color = NxColors.iceWhite, this.animateKey});
+  const _ActionButton({required this.icon, required this.onTap, this.label, Color? color, this.animateKey}) : _color = color;
   final IconData icon;
   final VoidCallback onTap;
   final String? label;
-  final Color color;
+  final Color? _color;
+  Color get color => _color ?? NxColors.iceWhite;
   final Object? animateKey;
 
   @override
@@ -292,11 +293,11 @@ class _CommentsSheetState extends ConsumerState<_CommentsSheet> {
                         title: Row(children: <Widget>[
                           Flexible(child: Text(cm.authorName, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13))),
                           const SizedBox(width: 6),
-                          Text(novaAgo(c, cm.at), style: const TextStyle(color: NxColors.textDim, fontSize: 11)),
+                          Text(novaAgo(c, cm.at), style: TextStyle(color: NxColors.textDim, fontSize: 11)),
                         ]),
                         subtitle: NovaRichText(
                           text: cm.text,
-                          style: const TextStyle(fontSize: 14, height: 1.4, color: NxColors.iceWhite),
+                          style: TextStyle(fontSize: 14, height: 1.4, color: NxColors.iceWhite),
                           onHashtag: _tagTap,
                           onMention: _mentionTap,
                         ),

@@ -259,8 +259,12 @@ class _OnlineMatchPageState extends ConsumerState<OnlineMatchPage>
     super.dispose();
   }
 
+  /// Games always keep the dark NX2 / gameplay look, whatever the app theme (Settings › Theme).
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) =>
+      Theme(data: buildNxTheme(), child: Builder(builder: _buildGame));
+
+  Widget _buildGame(BuildContext context) {
     final AppSettings s = ref.watch(settingsProvider);
     final SupabaseMatchLink? l = _link;
     final GameInfo? game = gameById(widget.gameId);
@@ -404,13 +408,13 @@ class _OnlineMatchPageState extends ConsumerState<OnlineMatchPage>
           const SizedBox(height: 8),
           Text(summary,
               textAlign: TextAlign.center,
-              style: const TextStyle(color: NxColors.iceWhite)),
+              style: TextStyle(color: NxColors.iceWhiteDark)),
         ],
         if (_oracleLine != null) OracleResultLine(text: _oracleLine!),
         const SizedBox(height: 10),
         Text(
             '${context.tx('بازی آنلاین ثبت شد', 'Online match recorded')} · $reward 🪙',
-            style: const TextStyle(color: NxColors.textDim)),
+            style: TextStyle(color: NxColors.textDimDark)),
         if (widget.tournamentMatchId != null)
           Padding(
             padding: const EdgeInsets.only(top: 6),

@@ -419,7 +419,7 @@ class _MafiaNarratorViewState extends State<MafiaNarratorView> {
   }
 
   TextStyle get _h1 => const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w900);
-  TextStyle get _dim => const TextStyle(color: NxColors.textDim, fontSize: 13);
+  TextStyle get _dim => const TextStyle(color: NxColors.textDimDark, fontSize: 13);
 
   Widget _scroll(Widget child) {
     return Center(
@@ -483,7 +483,7 @@ class _MafiaNarratorViewState extends State<MafiaNarratorView> {
                       isDense: true,
                       counterText: '',
                       hintText: _defaultName(i),
-                      hintStyle: const TextStyle(color: NxColors.textDim),
+                      hintStyle: const TextStyle(color: NxColors.textDimDark),
                       filled: true,
                       fillColor: Colors.white.withValues(alpha: 0.06),
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
@@ -538,14 +538,14 @@ class _MafiaNarratorViewState extends State<MafiaNarratorView> {
 
   Widget _stepper(int value, VoidCallback onMinus, VoidCallback onPlus) {
     return Row(mainAxisSize: MainAxisSize.min, children: <Widget>[
-      IconButton(onPressed: onMinus, icon: const Icon(Icons.remove_circle_outline, color: NxColors.iceWhite)),
+      IconButton(onPressed: onMinus, icon: const Icon(Icons.remove_circle_outline, color: NxColors.iceWhiteDark)),
       SizedBox(
         width: 30,
         child: Text('$value',
             textAlign: TextAlign.center,
             style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900)),
       ),
-      IconButton(onPressed: onPlus, icon: const Icon(Icons.add_circle_outline, color: NxColors.iceWhite)),
+      IconButton(onPressed: onPlus, icon: const Icon(Icons.add_circle_outline, color: NxColors.iceWhiteDark)),
     ]);
   }
 
@@ -854,7 +854,7 @@ class _MafiaNarratorViewState extends State<MafiaNarratorView> {
           IconButton(
             tooltip: _t('گزارش', 'Log'),
             onPressed: () => showMafiaLog(context, _e.log.where((GameLogEntry g) => g.visibleTo == null).toList(), _fa),
-            icon: const Icon(Icons.receipt_long, color: NxColors.iceWhite),
+            icon: const Icon(Icons.receipt_long, color: NxColors.iceWhiteDark),
           ),
           const SizedBox(width: 4),
         ]),
@@ -928,7 +928,7 @@ class _MafiaNarratorViewState extends State<MafiaNarratorView> {
       IconButton(
         tooltip: _paused ? _t('ادامه', 'Resume') : _t('توقف', 'Pause'),
         onPressed: () => setState(() => _paused = !_paused),
-        icon: Icon(_paused ? Icons.play_circle : Icons.pause_circle, color: NxColors.iceWhite, size: 30),
+        icon: Icon(_paused ? Icons.play_circle : Icons.pause_circle, color: NxColors.iceWhiteDark, size: 30),
       ),
       IconButton(
         tooltip: _t('۳۰ ثانیه بیشتر', '+30 seconds'),
@@ -936,7 +936,7 @@ class _MafiaNarratorViewState extends State<MafiaNarratorView> {
           _secondsLeft += 30;
           _secondsTotal = max(_secondsTotal, _secondsLeft);
         }),
-        icon: const Icon(Icons.more_time, color: NxColors.iceWhite, size: 28),
+        icon: const Icon(Icons.more_time, color: NxColors.iceWhiteDark, size: 28),
       ),
     ]);
   }
@@ -1084,7 +1084,7 @@ class _MafiaNarratorViewState extends State<MafiaNarratorView> {
                   child: Text(p.name,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        color: p.alive ? Colors.white : NxColors.textDim,
+                        color: p.alive ? Colors.white : NxColors.textDimDark,
                         fontWeight: FontWeight.w800,
                         decoration: p.alive ? null : TextDecoration.lineThrough,
                       )),

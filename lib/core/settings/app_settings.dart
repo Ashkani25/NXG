@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart' show ThemeMode;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -29,6 +30,88 @@ class AppSettings extends ChangeNotifier {
     _authMode = _store.getString(_kAuthMode) ?? '';
     _oracleBuddy = _store.getBool(_kOracleBuddy) ?? true;
     _oracleTalk = _store.getBool(_kOracleTalk) ?? true;
+    _themeMode = ThemeMode.values.firstWhere((e) => e.name == _store.getString(_kThemeMode),
+        orElse: () => ThemeMode.dark);
+    _highContrast = _store.getBool(_kHighContrast) ?? false;
+    _fontScale = ((_store.getInt(_kFontScale) ?? 100) / 100.0).clamp(minFontScale, maxFontScale);
+    _notifyInvites = _store.getBool(_kNotifyInvites) ?? true;
+    _notifyTournaments = _store.getBool(_kNotifyTournaments) ?? true;
+    _oracleOffline = _store.getBool(_kOracleOffline) ?? false;
+  }
+
+  static const _kThemeMode = 'settings.theme_mode';
+  static const _kHighContrast = 'settings.high_contrast';
+  static const _kFontScale = 'settings.font_scale';
+  static const _kNotifyInvites = 'settings.notify_invites';
+  static const _kNotifyTournaments = 'settings.notify_tournaments';
+  static const _kOracleOffline = 'settings.oracle_offline';
+  static const double minFontScale = 0.85;
+  static const double maxFontScale = 1.3;
+  late ThemeMode _themeMode;
+  late bool _highContrast;
+  late double _fontScale;
+  late bool _notifyInvites;
+  late bool _notifyTournaments;
+  late bool _oracleOffline;
+
+  /// App theme: follow the system, or force dark / light. Games always stay dark.
+  ThemeMode get themeMode => _themeMode;
+
+  /// Light theme for the given platform brightness.
+  bool isLight(Brightness platform) =>
+      _themeMode == ThemeMode.light ||
+      (_themeMode == ThemeMode.system && platform == Brightness.light);
+
+  /// Accessibility: stronger text/borders.
+  bool get highContrast => _highContrast;
+
+  /// Accessibility: app-wide text size multiplier ([minFontScale]..[maxFontScale]).
+  double get fontScale => _fontScale;
+
+  /// Real-time game invitations from friends (InviteWatcher).
+  bool get notifyInvites => _notifyInvites;
+
+  /// Tournament alerts and 10-minute reminders (TournamentWatcher).
+  bool get notifyTournaments => _notifyTournaments;
+
+  /// ORACLE answers on this device only; nothing from the chat is sent to the cloud model.
+  bool get oracleOffline => _oracleOffline;
+
+  set themeMode(ThemeMode v) {
+    if (_themeMode == v) return;
+    _themeMode = v;
+    _store.setString(_kThemeMode, v.name);
+    notifyListeners();
+  }
+
+  set highContrast(bool v) {
+    _highContrast = v;
+    _store.setBool(_kHighContrast, v);
+    notifyListeners();
+  }
+
+  set fontScale(double v) {
+    _fontScale = v.clamp(minFontScale, maxFontScale);
+    _store.setInt(_kFontScale, (_fontScale * 100).round());
+    notifyListeners();
+  }
+
+  set notifyInvites(bool v) {
+    _notifyInvites = v;
+    _store.setBool(_kNotifyInvites, v);
+    notifyListeners();
+  }
+
+  set notifyTournaments(bool v) {
+    _notifyTournaments = v;
+    _store.setBool(_kNotifyTournaments, v);
+    notifyListeners();
+  }
+
+  set oracleOffline(bool v) {
+    _oracleOffline = v;
+    _store.setBool(_kOracleOffline, v);
+    notifyListeners();
   }
 
   static const _kOracleBuddy = 'settings.oracle_buddy';

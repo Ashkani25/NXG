@@ -279,7 +279,7 @@ class _OrbitCallPageState extends ConsumerState<OrbitCallPage> {
               const SizedBox(height: 4),
               Text(
                 '${widget.video ? context.tx('تماس تصویری', 'Video call') : context.tx('تماس صوتی', 'Voice call')} · $status',
-                style: const TextStyle(color: NxColors.textDim),
+                style: TextStyle(color: NxColors.textDim),
               ),
               if (_error != null && _error != 'offline')
                 Padding(

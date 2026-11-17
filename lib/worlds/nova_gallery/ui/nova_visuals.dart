@@ -125,7 +125,7 @@ class _NovaRichTextState extends State<NovaRichText> {
   @override
   Widget build(BuildContext context) {
     _clear();
-    final base = widget.style ?? const TextStyle(fontSize: 15, height: 1.5, color: NxColors.iceWhite);
+    final base = widget.style ?? TextStyle(fontSize: 15, height: 1.5, color: NxColors.iceWhite);
     final spans = <InlineSpan>[];
     for (final t in NovaText.parse(widget.text)) {
       switch (t.kind) {

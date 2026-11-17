@@ -83,7 +83,7 @@ class _ForcePasswordPageState extends ConsumerState<ForcePasswordPage> {
                     context.tx('حساب «${o.isInternalAccount ? (o.email ?? '').split('@').first : (o.email ?? '')}» تا رمز را عوض نکنی دسترسی مدیریتی ندارد.',
                         'This account has no admin access until the password is changed.'),
                     textAlign: TextAlign.center,
-                    style: const TextStyle(color: NxColors.textDim)),
+                    style: TextStyle(color: NxColors.textDim)),
                 const SizedBox(height: 20),
                 TextField(
                   controller: _a,

@@ -74,7 +74,7 @@ class _BilliardsGameState extends State<BilliardsGame>
 
   // banner
   String _bannerText = '';
-  Color _bannerColor = NxColors.iceWhite;
+  Color _bannerColor = NxColors.iceWhiteDark;
   int _bannerId = 0;
   double _bannerLeft = 0;
 
@@ -294,7 +294,7 @@ class _BilliardsGameState extends State<BilliardsGame>
   void _onImpact(double x, double y, double strength, bool cushion) {
     if (strength < 140) return;
     _scene.spark(
-        x, y, strength, cushion ? NxColors.gold : NxColors.iceWhite, _rng);
+        x, y, strength, cushion ? NxColors.gold : NxColors.iceWhiteDark, _rng);
     _haptic(0);
   }
 
@@ -925,7 +925,7 @@ class _BilliardsGameState extends State<BilliardsGame>
                       ? '…'
                       : 'VS',
                   style: const TextStyle(
-                      color: NxColors.textDim,
+                      color: NxColors.textDimDark,
                       fontSize: 11,
                       fontWeight: FontWeight.w900),
                 ),

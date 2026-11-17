@@ -9,6 +9,7 @@ import '../core/online/cloud_profile_sync.dart';
 import '../core/online/invite_watcher.dart';
 import '../core/online/online_service.dart';
 import '../core/settings/app_settings.dart';
+import '../core/ui2/nx2_widgets.dart';
 import '../core/ui2/oracle_buddy.dart';
 import '../core/update/app_updater.dart';
 import '../core/update/update_banner.dart';
@@ -62,6 +63,16 @@ class _NexoraAppState extends ConsumerState<NexoraApp> {
   }
 
 
+  /// Marks every element dirty so widgets that read the static theme tokens repaint in the new theme.
+  void _rebuildAll() {
+    if (!mounted) return;
+    void visit(Element e) {
+      e.markNeedsBuild();
+      e.visitChildren(visit);
+    }
+    (context as Element).visitChildren(visit);
+  }
+
   @override
   void dispose() {
     _invites.dispose();
@@ -77,10 +88,20 @@ class _NexoraAppState extends ConsumerState<NexoraApp> {
     final settings = ref.watch(settingsProvider);
     MusicService.instance
         .configure(enabled: settings.music, volume: settings.musicVolume);
+    // Theme (Settings › Theme): system / dark / light, switched live. The colour tokens are static getters,
+    // so a change re-runs every build below (they read the new values).
+    final bool light = settings.isLight(MediaQuery.platformBrightnessOf(context));
+    final bool lowFx = settings.quality == GraphicsQuality.low || settings.reducedMotion;
+    if (light != NxColors.light || lowFx != Nx2FramePainter.lowFx) {
+      NxColors.light = light;
+      Nx2.light = light;
+      Nx2FramePainter.lowFx = lowFx;
+      WidgetsBinding.instance.addPostFrameCallback((_) => _rebuildAll());
+    }
     return MaterialApp.router(
       title: 'NEXORA',
       debugShowCheckedModeBanner: false,
-      theme: buildNxTheme(settings.visualTheme),
+      theme: buildNxTheme(light: light, highContrast: settings.highContrast),
       locale: settings.locale,
       supportedLocales: const [Locale('fa'), Locale('en')],
       localizationsDelegates: const [
@@ -92,11 +113,14 @@ class _NexoraAppState extends ConsumerState<NexoraApp> {
       scaffoldMessengerKey: _messenger,
       builder: (context, child) {
         final mq = MediaQuery.of(context);
+        // Accessibility: system text size × Settings font scale, kept within a range the layouts survive.
+        final double sys = mq.textScaler.scale(100) / 100;
         return MediaQuery(
           data: mq.copyWith(
             disableAnimations: settings.reducedMotion || mq.disableAnimations,
-            textScaler:
-                mq.textScaler.clamp(minScaleFactor: 0.85, maxScaleFactor: 1.3),
+            highContrast: settings.highContrast || mq.highContrast,
+            textScaler: TextScaler.linear(
+                (sys * settings.fontScale).clamp(0.85, 1.5)),
           ),
           child: Listener(
             behavior: HitTestBehavior.translucent,

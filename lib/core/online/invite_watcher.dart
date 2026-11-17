@@ -62,6 +62,8 @@ class InviteWatcher {
   void _show(Map<String, dynamic> r) {
     final int id = (r['id'] as num?)?.toInt() ?? -1;
     if (!_seen.add(id)) return;
+    // Settings › Notifications › Game invites.
+    if (!_ref.read(settingsProvider).notifyInvites) return;
     final Map<String, dynamic> p = Map<String, dynamic>.from((r['payload'] as Map?) ?? const <String, dynamic>{});
     final String game = '${p['game'] ?? ''}';
     final String code = '${p['code'] ?? ''}';

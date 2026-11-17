@@ -401,7 +401,7 @@ class _QuizViewState extends State<QuizView> with TickerProviderStateMixin {
               _l.tx('کوییز نکسورا', 'NEXORA Quiz'),
               textAlign: TextAlign.center,
               style: TextStyle(
-                color: NxColors.iceWhite,
+                color: NxColors.iceWhiteDark,
                 fontSize: 28,
                 fontWeight: FontWeight.w900,
                 letterSpacing: 1.2,
@@ -537,7 +537,7 @@ class _QuizViewState extends State<QuizView> with TickerProviderStateMixin {
     final QuizQuestion q = _engine.currentQuestion;
     final QuizAnswer? botAns = _engine.currentAnswers[1];
     String botStatus;
-    Color botStatusColor = NxColors.textDim;
+    Color botStatusColor = NxColors.textDimDark;
     if (_engine.phase == QuizPhase.reveal) {
       if (botAns == null || botAns.choice == null) {
         botStatus = _l.tx('بی‌پاسخ', 'No answer');
@@ -753,13 +753,13 @@ class _QuizViewState extends State<QuizView> with TickerProviderStateMixin {
                 width: 28,
                 child: Text('${r + 1}',
                     style: const TextStyle(
-                        color: NxColors.textDim, fontWeight: FontWeight.w700))),
+                        color: NxColors.textDimDark, fontWeight: FontWeight.w700))),
             Expanded(
               child: Text(_qText(_engine.questions[r]),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style:
-                      const TextStyle(color: NxColors.iceWhite, fontSize: 12)),
+                      const TextStyle(color: NxColors.iceWhiteDark, fontSize: 12)),
             ),
             _mark(a, NxColors.turquoise),
             const SizedBox(width: 6),
@@ -799,7 +799,7 @@ class _QuizViewState extends State<QuizView> with TickerProviderStateMixin {
           const SizedBox(height: 4),
           Text(_catName(_engine.category),
               textAlign: TextAlign.center,
-              style: const TextStyle(color: NxColors.textDim, fontSize: 13)),
+              style: const TextStyle(color: NxColors.textDimDark, fontSize: 13)),
           const SizedBox(height: NxSpace.md),
           Row(
             children: <Widget>[

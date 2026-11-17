@@ -220,15 +220,15 @@ class _RoomsPageState extends ConsumerState<RoomsPage> {
           Expanded(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: <Widget>[
               Text(g == null ? '${r['game']}' : context.tx(g.nameFa, g.nameEn),
-                  style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: Nx2.text)),
+                  style: TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: Nx2.text)),
               Text('${context.tx('کد', 'Code')} ${r['code']}',
-                  style: const TextStyle(color: Nx2.muted, fontSize: 12, fontWeight: FontWeight.w700)),
+                  style: TextStyle(color: Nx2.muted, fontSize: 12, fontWeight: FontWeight.w700)),
             ]),
           ),
           Text('$n/$seats',
               style: const TextStyle(color: Nx2.cyan, fontWeight: FontWeight.w900, fontSize: 16)),
           const SizedBox(width: 6),
-          const Icon(Icons.login_rounded, color: Nx2.text),
+          Icon(Icons.login_rounded, color: Nx2.text),
         ]),
       ),
     );
@@ -253,7 +253,7 @@ class _PlayLink extends StatelessWidget {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             textAlign: TextAlign.center,
-            style: const TextStyle(color: Nx2.text, fontSize: 12, fontWeight: FontWeight.w800)),
+            style: TextStyle(color: Nx2.text, fontSize: 12, fontWeight: FontWeight.w800)),
       ]),
     );
   }
@@ -272,7 +272,7 @@ class _GamePickerSheet extends StatelessWidget {
         child: Nx2Panel(
           padding: const EdgeInsets.fromLTRB(14, 14, 14, 10),
           child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-            Text(title, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: Nx2.text)),
+            Text(title, style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: Nx2.text)),
             const SizedBox(height: 10),
             Flexible(
               child: GridView.count(
@@ -298,7 +298,7 @@ class _GamePickerSheet extends StatelessWidget {
                           Text(context.tx(g.nameFa, g.nameEn),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800, color: Nx2.text)),
+                              style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800, color: Nx2.text)),
                         ]),
                       ),
                     ),

@@ -41,7 +41,7 @@ class BracketView extends StatelessWidget {
           child: Text(
               context.tx('براکت بعد از قرعه‌کشی ساخته می‌شود',
                   'The bracket appears after the draw'),
-              style: const TextStyle(color: NxColors.textDim)));
+              style: TextStyle(color: NxColors.textDim)));
     }
     final _Layout winners = _Layout.build(w, 0, 0);
     final _Layout losers = _Layout.build(l, 0, winners.height + 40);

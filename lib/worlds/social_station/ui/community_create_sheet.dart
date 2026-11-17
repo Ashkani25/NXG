@@ -164,7 +164,7 @@ class _CommunityEditorState extends ConsumerState<_CommunityEditor> {
               padding: const EdgeInsets.only(top: 8),
               child: Text(
                 context.tx('جامعه خصوصی فقط با کد دعوت قابل ورود است.', 'Private communities can only be joined with the invite code.'),
-                style: const TextStyle(color: NxColors.textDim, fontSize: 12),
+                style: TextStyle(color: NxColors.textDim, fontSize: 12),
               ),
             ),
           if (_needsGame) ...<Widget>[

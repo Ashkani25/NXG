@@ -13,32 +13,41 @@ import '../../worlds/oracle_core/persona/oracle_tour.dart';
 /// NX2 colour tokens: deep cosmic violet, neon magenta/cyan, gold for legendary.
 class Nx2 {
   Nx2._();
-  static const Color deep = Color(0xFF07031A);
+  /// Daylight theme (Settings › Theme). The app sets it before building and rebuilds every element on change.
+  static bool light = false;
+  static Color get deep => light ? const Color(0xFFEDE7FF) : deepDark;
+  static const Color deepDark = Color(0xFF07031A);
   static const Color night = Color(0xFF120A33);
   static const Color plum = Color(0xFF1E0F4D);
   static const Color violet = Color(0xFF8B3DFF);
   static const Color magenta = Color(0xFFE040FB);
   static const Color cyan = Color(0xFF35D6FF);
-  static const Color gold = Color(0xFFFFC857);
+  static Color get gold => light ? const Color(0xFF8A5A00) : goldBright;
+  static const Color goldBright = Color(0xFFFFC857);
   static const Color goldDeep = Color(0xFFB9772A);
-  static const Color text = Color(0xFFF4F0FF);
-  static const Color muted = Color(0xFFBFB3E6);
+  static Color get text => light ? const Color(0xFF1B1240) : onDark;
+  static Color get muted => light ? const Color(0xFF574A85) : mutedOnDark;
+
+  /// Text on art that stays dark in both themes (dock, art buttons, chips).
+  static const Color onDark = Color(0xFFF4F0FF);
+  static const Color mutedOnDark = Color(0xFFBFB3E6);
+  /// Accent colour used as TEXT: unchanged on dark, darkened in the light theme so it stays readable on light fills.
+  static Color ink(Color c) => light ? (Color.lerp(c, const Color(0xFF14092E), 0.5) ?? c) : c;
   static const Color success = Color(0xFF4BE3A0);
   static const Color danger = Color(0xFFFF5A7A);
 
   static const LinearGradient neon =
       LinearGradient(colors: <Color>[cyan, violet, magenta]);
   static const LinearGradient goldGrad =
-      LinearGradient(colors: <Color>[Color(0xFFFFE7A3), gold, goldDeep]);
+      LinearGradient(colors: <Color>[Color(0xFFFFE7A3), goldBright, goldDeep]);
 
-  static const TextStyle title = TextStyle(
+  static TextStyle get title => TextStyle(
       fontSize: 18,
       fontWeight: FontWeight.w900,
       letterSpacing: 0.8,
       color: text,
-      shadows: <Shadow>[Shadow(color: Color(0xAA8B3DFF), blurRadius: 12)]);
-  static const TextStyle label =
-      TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: text);
+      shadows: light ? null : const <Shadow>[Shadow(color: Color(0xAA8B3DFF), blurRadius: 12)]);
+  static TextStyle get label => TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: text);
 }
 
 /// The cosmic castle backdrop (main) or the room backdrop, darkened for contrast.
@@ -53,8 +62,12 @@ class Nx2Background extends StatelessWidget {
   Widget build(BuildContext context) {
     final Size s = MediaQuery.sizeOf(context);
     final int cw = (math.min(s.width, 600) * 2).round();
+    // High contrast (Settings › Accessibility) strengthens the veil behind the content.
+    final double d = MediaQuery.highContrastOf(context) ? math.min(0.9, dim + 0.3) : dim;
+    final Color veil = Nx2.light ? const Color(0xFFF4F0FF) : Nx2.deepDark;
+    final double base = Nx2.light ? 0.78 : 0;
     return Stack(fit: StackFit.expand, children: <Widget>[
-      const ColoredBox(color: Nx2.deep),
+      ColoredBox(color: Nx2.deep),
       Image.asset(room ? Nx2Assets.bgBgRoom : Nx2Assets.bgBgMain,
           fit: BoxFit.cover,
           cacheWidth: cw,
@@ -67,9 +80,10 @@ class Nx2Background extends StatelessWidget {
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
               colors: <Color>[
-                Nx2.deep.withValues(alpha: dim * 0.6),
-                Nx2.deep.withValues(alpha: dim),
-                Nx2.deep.withValues(alpha: math.min(1, dim + 0.25)),
+                // Daylight: the same art under a light veil (art unchanged, text dark).
+                veil.withValues(alpha: math.min(1, base + d * 0.6)),
+                veil.withValues(alpha: math.min(1, base + d)),
+                veil.withValues(alpha: math.min(1, base + d + 0.25)),
               ],
               stops: const <double>[0, 0.55, 1],
             ),
@@ -90,13 +104,19 @@ class Nx2FramePainter extends CustomPainter {
     this.strokeWidth = 1.4,
     this.glow = 0.35,
     this.gems = false,
-  });
+    bool? light,
+  }) : _light = light ?? Nx2.light;
   final double cut;
   final Gradient? fill;
   final Gradient border;
   final double strokeWidth;
   final double glow;
   final bool gems;
+
+  /// Low graphics quality / reduced motion: skip the blurred glow (a MaskFilter per panel per paint).
+  static bool lowFx = false;
+  final bool _light;
+  final bool _low = lowFx;
 
   static Path chamfer(Rect r, double c) {
     final double k = math.min(c, math.min(r.width, r.height) / 2);
@@ -116,7 +136,7 @@ class Nx2FramePainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final Rect r = (Offset.zero & size).deflate(strokeWidth / 2);
     final Path p = chamfer(r, cut);
-    if (glow > 0) {
+    if (glow > 0 && !_low) {
       canvas.drawPath(
           p,
           Paint()
@@ -129,11 +149,17 @@ class Nx2FramePainter extends CustomPainter {
         p,
         Paint()
           ..shader = (fill ??
-                  const LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: <Color>[Color(0xE62A1466), Color(0xEB100830)],
-                  ))
+                  (_light
+                      ? const LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: <Color>[Color(0xF5FFFFFF), Color(0xF0ECE4FF)],
+                        )
+                      : const LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: <Color>[Color(0xE62A1466), Color(0xEB100830)],
+                        )))
               .createShader(r));
     // inner sheen
     canvas.save();
@@ -179,7 +205,9 @@ class Nx2FramePainter extends CustomPainter {
       old.fill != fill ||
       old.border != border ||
       old.glow != glow ||
-      old.gems != gems;
+      old.gems != gems ||
+      old._light != _light ||
+      old._low != _low;
 }
 
 /// Glass panel in the NX2 style (chamfered neon frame).
@@ -208,6 +236,8 @@ class Nx2Panel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Follow the ambient theme so game screens (forced dark) keep dark panels in the light app theme.
+    final bool lt = Theme.of(context).brightness == Brightness.light;
     final Gradient border = borderColor != null
         ? LinearGradient(colors: <Color>[
             borderColor!,
@@ -216,22 +246,24 @@ class Nx2Panel extends StatelessWidget {
         : (gold ? Nx2.goldGrad : Nx2.neon);
     final Gradient? fill = tint == null
         ? (gold
-            ? const LinearGradient(
+            ? LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-                colors: <Color>[Color(0xE63A2410), Color(0xEB140A26)])
+                colors: lt
+                    ? <Color>[Color(0xF5FFF7E2), Color(0xF0FFEBC4)]
+                    : <Color>[Color(0xE63A2410), Color(0xEB140A26)])
             : null)
         : LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: <Color>[
-              Color.alphaBlend(tint!, const Color(0xE62A1466)),
-              Color.alphaBlend(tint!, const Color(0xEB100830)),
+              Color.alphaBlend(tint!, lt ? const Color(0xF5FFFFFF) : const Color(0xE62A1466)),
+              Color.alphaBlend(tint!, lt ? const Color(0xF0ECE4FF) : const Color(0xEB100830)),
             ],
           );
     Widget body = CustomPaint(
       painter: Nx2FramePainter(
-          cut: cut, fill: fill, border: border, glow: glow, gems: gems),
+          cut: cut, fill: fill, border: border, glow: glow, gems: gems, light: lt),
       child: Padding(padding: padding, child: child),
     );
     if (onTap != null) {
@@ -492,7 +524,7 @@ class Nx2Stat extends StatelessWidget {
       {super.key,
       required this.value,
       this.icon = Icons.toll_rounded,
-      this.color = Nx2.gold,
+      this.color = Nx2.goldBright,
       this.onTap,
       this.wiggle});
   final String value;
@@ -535,8 +567,8 @@ class Nx2Stat extends StatelessWidget {
           ),
           const SizedBox(width: 6),
           Text(value,
-              style: const TextStyle(
-                  fontWeight: FontWeight.w900, fontSize: 13, color: Nx2.text)),
+              style: TextStyle(
+                  fontWeight: FontWeight.w900, fontSize: 13, color: Nx2.onDark)),
         ]),
       ),
     );
@@ -680,7 +712,7 @@ class Nx2SectionHeader extends StatelessWidget {
       const SizedBox(width: 8),
       Expanded(
         child: Text(title,
-            style: const TextStyle(
+            style: TextStyle(
                 fontWeight: FontWeight.w900,
                 fontSize: 15,
                 letterSpacing: 0.6,
@@ -762,7 +794,7 @@ class Nx2Dock extends StatelessWidget {
                   child: Text(context.tx(fa, en),
                       maxLines: 1,
                       textAlign: TextAlign.center,
-                      style: TextStyle(fontSize: 8.5, height: 1.05, fontWeight: FontWeight.w800, color: on ? Nx2.text : Nx2.muted)),
+                      style: TextStyle(fontSize: 8.5, height: 1.05, fontWeight: FontWeight.w800, color: on ? Nx2.onDark : Nx2.mutedOnDark)),
                 ),
               ),
             ]),
@@ -979,7 +1011,7 @@ class Nx2Bubble extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
         borderColor: Nx2.cyan,
         child: Text(text,
-            style: const TextStyle(
+            style: TextStyle(
                 fontSize: 12.5, height: 1.35, color: Nx2.text)),
       ),
     );
@@ -1057,7 +1089,7 @@ class Nx2SectionBar extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 12),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(18),
-                  color: on ? const Color(0xFF5B2BD6) : const Color(0xB3140A36),
+                  color: on ? const Color(0xFF5B2BD6) : (Nx2.light ? const Color(0xF2FFFFFF) : const Color(0xB3140A36)),
                   border: Border.all(color: on ? Nx2.cyan : Nx2.violet.withValues(alpha: 0.45)),
                 ),
                 child: Row(mainAxisSize: MainAxisSize.min, children: <Widget>[

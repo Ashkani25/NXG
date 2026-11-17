@@ -478,7 +478,7 @@ class _MafiaVsBotViewState extends State<MafiaVsBotView> {
         padding: const EdgeInsets.fromLTRB(20, 64, 20, 20),
         child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
           Text(_t('ایستگاه مهتاب · ${_e.playerCount} مسافر', 'Moonlit Station · ${_e.playerCount} crew'),
-              style: const TextStyle(color: NxColors.textDim, letterSpacing: 1.5, fontWeight: FontWeight.w700)),
+              style: const TextStyle(color: NxColors.textDimDark, letterSpacing: 1.5, fontWeight: FontWeight.w700)),
           const SizedBox(height: 6),
           Text(_t('نقش مخفی تو', 'Your secret role'),
               style: const TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.w900)),
@@ -503,7 +503,7 @@ class _MafiaVsBotViewState extends State<MafiaVsBotView> {
               Text(
                 _t('${MafiaEngine.mafiaCountFor(_e.playerCount)} مافیا بین شما هستند.',
                     '${MafiaEngine.mafiaCountFor(_e.playerCount)} Mafia hide among you.'),
-                style: const TextStyle(color: NxColors.textDim),
+                style: const TextStyle(color: NxColors.textDimDark),
               ),
               const SizedBox(height: 14),
               GlowButton(
@@ -571,7 +571,7 @@ class _MafiaVsBotViewState extends State<MafiaVsBotView> {
           IconButton(
             tooltip: _t('گزارش', 'Log'),
             onPressed: () => showMafiaLog(context, _e.logFor(MafiaMatch.humanId), _fa),
-            icon: const Icon(Icons.receipt_long, color: NxColors.iceWhite),
+            icon: const Icon(Icons.receipt_long, color: NxColors.iceWhiteDark),
           ),
           const SizedBox(width: 4),
         ]),
@@ -702,7 +702,7 @@ class _MafiaVsBotViewState extends State<MafiaVsBotView> {
       const SizedBox(height: 6),
       _title(_fa ? r.labelFa : r.labelEn, color: c),
       const SizedBox(height: 6),
-      Text(prompt, textAlign: TextAlign.center, style: const TextStyle(color: NxColors.textDim)),
+      Text(prompt, textAlign: TextAlign.center, style: const TextStyle(color: NxColors.textDimDark)),
       const SizedBox(height: 8),
       Text(_selected == null ? _t('یک صندلی را لمس کن', 'Tap a seat') : _name(_selected!),
           style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 18)),
@@ -812,7 +812,7 @@ class _MafiaVsBotViewState extends State<MafiaVsBotView> {
           _t('نتیجه بر اساس پیروزی تیم تو (${teamLabel(_m.humanRole.team, true)}) حساب می‌شود.',
               "Your result follows your team's (${teamLabel(_m.humanRole.team, false)}) fate."),
           textAlign: TextAlign.center,
-          style: const TextStyle(color: NxColors.textDim),
+          style: const TextStyle(color: NxColors.textDimDark),
         ),
         const SizedBox(height: 14),
         Wrap(spacing: 10, runSpacing: 8, alignment: WrapAlignment.center, children: <Widget>[
@@ -836,7 +836,7 @@ class _MafiaVsBotViewState extends State<MafiaVsBotView> {
     if (_shown.isEmpty) {
       return Center(
         child: Text(_talking ? '...' : _t('سکوت در ایستگاه...', 'Silence on the station...'),
-            style: const TextStyle(color: NxColors.textDim)),
+            style: const TextStyle(color: NxColors.textDimDark)),
       );
     }
     return ListView.builder(
@@ -919,7 +919,7 @@ class _MafiaVsBotViewState extends State<MafiaVsBotView> {
             : _t('چه کسی باید به دفاع برود؟ (حداقل ${_e.nominationThreshold} رأی)',
                 'Who should stand trial? (at least ${_e.nominationThreshold} votes)'),
         textAlign: TextAlign.center,
-        style: const TextStyle(color: NxColors.textDim),
+        style: const TextStyle(color: NxColors.textDimDark),
       ),
       const SizedBox(height: 8),
       Text(_selected == null ? _t('یک صندلی را لمس کن', 'Tap a seat') : _name(_selected!),
@@ -953,7 +953,7 @@ class _MafiaVsBotViewState extends State<MafiaVsBotView> {
               v.value == null
                   ? '${_name(v.key)} → ${_tallyFinal ? _t('می‌بخشد', 'spares') : _t('ممتنع', 'abstains')}'
                   : '${_name(v.key)} → ${_name(v.value!)}',
-              style: TextStyle(color: v.value == null ? NxColors.textDim : Colors.white, fontSize: 13),
+              style: TextStyle(color: v.value == null ? NxColors.textDimDark : Colors.white, fontSize: 13),
             ),
           ),
         ]),
@@ -1073,12 +1073,12 @@ class _MafiaVsBotViewState extends State<MafiaVsBotView> {
           child: NxPill(label: _fa ? vr.labelFa : vr.labelEn, icon: MafiaStyle.roleIcon(vr), color: MafiaStyle.roleColor(vr)),
         ));
       } else {
-        children.add(Text(_t('نقش او مخفی می‌ماند.', 'Their role stays secret.'), style: const TextStyle(color: NxColors.textDim)));
+        children.add(Text(_t('نقش او مخفی می‌ماند.', 'Their role stays secret.'), style: const TextStyle(color: NxColors.textDimDark)));
       }
       if (_lastWords != null) {
         children.add(const SizedBox(height: 6));
         children.add(Text('« ${_fa ? _lastWords!.fa : _lastWords!.en} »',
-            textAlign: TextAlign.center, style: const TextStyle(color: NxColors.textDim, fontStyle: FontStyle.italic)));
+            textAlign: TextAlign.center, style: const TextStyle(color: NxColors.textDimDark, fontStyle: FontStyle.italic)));
       }
     }
     children.add(const SizedBox(height: 12));

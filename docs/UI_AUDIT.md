@@ -52,3 +52,18 @@ Old routes still work (deep links, ORACLE intents, notifications) through `legac
 
 ## Not changed
 Game screens, physics/tuning, Supabase schema/RPCs, online/match logic, all art assets.
+
+## Stage 2 — theme, one grouped Settings page
+
+- **Theme mode** (Settings › Theme & graphics): System / Dark (default) / Light, switched live. Light = the same user
+  art under a light veil, light panel fills, dark text (`NxThemeColors.light`, `NxColors.light`/`Nx2.light` tokens;
+  `NexoraApp` flips them and rebuilds the tree). Accent colours used as text go through `Nx2.ink()` so they stay
+  readable on light fills. **Games stay dark**: game host and online match pages force the dark theme, and
+  `Nx2Panel`/`NxPill` follow the ambient theme brightness rather than the global flag.
+- **Low graphics** (quality Low or Reduced motion) skips the blurred panel glow (`Nx2FramePainter.lowFx`).
+- **Settings page** grouped: Account, Notifications (game invites → `InviteWatcher`, tournaments →
+  `TournamentWatcher` incl. device reminders; off cancels scheduled ones), Privacy & data, Language, Theme & graphics,
+  Sound & haptics, Accessibility (text size 85–130 % on top of the system size, high contrast, reduced motion),
+  ORACLE (keep chats offline = no cloud model calls, corner buddy, speech bubbles, replay tour). No other page holds
+  an app-wide preference (onboarding's first-run language pick and ORACLE voice commands aside).
+- Test: `test/worlds/settings_test.dart`. Light screenshots: `flutter test test_render/menus_render_test.dart --dart-define=LIGHT=true`.

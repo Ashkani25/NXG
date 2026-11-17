@@ -479,7 +479,7 @@ class _RoleCardState extends State<RoleCard>
           child: Text(
               widget.isFa ? 'برای دیدن نقش لمس کن' : 'Tap to reveal your role',
               style: const TextStyle(
-                  color: NxColors.textDim,
+                  color: NxColors.textDimDark,
                   fontSize: 12,
                   fontWeight: FontWeight.w600)),
         ),
@@ -548,7 +548,7 @@ class _RoleCardState extends State<RoleCard>
         Text(widget.isFa ? r.descFa : r.descEn,
             textAlign: TextAlign.center,
             style: const TextStyle(
-                color: NxColors.textDim, fontSize: 11.5, height: 1.35)),
+                color: NxColors.textDimDark, fontSize: 11.5, height: 1.35)),
         const Spacer(),
       ]),
     );
@@ -710,7 +710,7 @@ class GhostButton extends StatelessWidget {
       {super.key,
       required this.label,
       required this.onTap,
-      this.color = NxColors.iceWhite,
+      this.color = NxColors.iceWhiteDark,
       this.icon});
   final String label;
   final VoidCallback? onTap;

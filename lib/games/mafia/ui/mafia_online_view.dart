@@ -347,7 +347,7 @@ class _MafiaOnlineViewState extends State<MafiaOnlineView> {
           if (!_mine.alive) NxPill(label: _t('حذف شده', 'Out'), icon: Icons.close_rounded, color: NxColors.danger),
         ]),
         const SizedBox(height: 6),
-        Text(_t(r.descFa, r.descEn), style: const TextStyle(color: NxColors.textDim, fontSize: 12, height: 1.5)),
+        Text(_t(r.descFa, r.descEn), style: const TextStyle(color: NxColors.textDimDark, fontSize: 12, height: 1.5)),
         if (partners.isNotEmpty) ...<Widget>[
           const SizedBox(height: 6),
           Text(_t('هم‌تیمی‌ها: ${partners.join('، ')}', 'Partners: ${partners.join(', ')}'),
@@ -374,7 +374,7 @@ class _MafiaOnlineViewState extends State<MafiaOnlineView> {
           ? ''
           : _t('در انتظار: ${waiting.map((int s) => _e.player(s).name).join('، ')}',
               'Waiting for: ${waiting.map((int s) => _e.player(s).name).join(', ')}'),
-      style: const TextStyle(color: NxColors.textDim, fontSize: 12),
+      style: const TextStyle(color: NxColors.textDimDark, fontSize: 12),
     );
     final Widget skip = _net.isAuthority && idleLong && waiting.any((int s) => s != _me)
         ? TextButton.icon(
@@ -523,13 +523,13 @@ class _MafiaOnlineViewState extends State<MafiaOnlineView> {
                 Container(
                   width: 8,
                   height: 8,
-                  decoration: BoxDecoration(shape: BoxShape.circle, color: online ? NxColors.success : NxColors.textDim),
+                  decoration: BoxDecoration(shape: BoxShape.circle, color: online ? NxColors.success : NxColors.textDimDark),
                 ),
                 const SizedBox(width: 6),
                 Text(p.name,
                     style: TextStyle(
                         decoration: p.alive ? null : TextDecoration.lineThrough,
-                        color: p.alive ? NxColors.iceWhite : NxColors.textDim,
+                        color: p.alive ? NxColors.iceWhiteDark : NxColors.textDimDark,
                         fontWeight: FontWeight.w700)),
                 if (role != null && p.id != _me) ...<Widget>[
                   const SizedBox(width: 4),
@@ -558,7 +558,7 @@ class _MafiaOnlineViewState extends State<MafiaOnlineView> {
                     fontSize: 12,
                     color: e.kind == LogKind.death
                         ? NxColors.danger
-                        : (e.visibleTo != null ? NxColors.gold : NxColors.iceWhite))),
+                        : (e.visibleTo != null ? NxColors.gold : NxColors.iceWhiteDark))),
           ),
       ]),
     );

@@ -254,7 +254,8 @@ class _OracleCorePageState extends ConsumerState<OracleCorePage> {
     OracleReply reply;
     try {
       final RemoteOracleEngine? remote = _remote;
-      final bool online = ref.read(backendProvider).isOnline;
+      // Settings › ORACLE › Keep chats offline: answer on this device only, send nothing to the cloud model.
+      final bool online = ref.read(backendProvider).isOnline && !ref.read(settingsProvider).oracleOffline;
       reply = remote != null && online
           ? await remote.ask(q, _context())
           : await _engine.ask(q, _context());
@@ -423,7 +424,7 @@ class _OracleCorePageState extends ConsumerState<OracleCorePage> {
                       'تا آن موقع می‌توانی سؤالت را تایپ کنی؛ ORACLE همه‌ی کارها را آفلاین انجام می‌دهد.',
                       'Until then, type your question; ORACLE does everything else offline.'),
                   textAlign: TextAlign.center,
-                  style: const TextStyle(color: NxColors.textDim),
+                  style: TextStyle(color: NxColors.textDim),
                 ),
                 const SizedBox(height: NxSpace.md),
                 FilledButton(

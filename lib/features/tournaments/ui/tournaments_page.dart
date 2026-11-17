@@ -288,7 +288,7 @@ class _TournamentsPageState extends ConsumerState<TournamentsPage>
                               Text(
                                   context.tx('ثبت‌نام کن، بازی کن، جایزه ببر',
                                       'Register, play, win prizes'),
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                       color: Nx2.muted, fontSize: 11.5)),
                             ]),
                       ),
@@ -342,7 +342,7 @@ class _TournamentsPageState extends ConsumerState<TournamentsPage>
                               Text(
                                   context.tx('${_all.length} تورنمنت در دسترس',
                                       '${_all.length} tournaments available'),
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                       color: NxColors.textDim, fontSize: 12)),
                             ]),
                       ),
@@ -474,7 +474,7 @@ class _TournamentsPageState extends ConsumerState<TournamentsPage>
                   Text(t?.title ?? '',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
+                      style: TextStyle(
                           color: NxColors.textDim, fontSize: 12)),
                 ]),
           ),
@@ -571,7 +571,7 @@ class TournamentCard extends StatelessWidget {
                           '${g == null ? t.game : context.tx(g.nameFa, g.nameEn)} · ${formatName(context, t.format)}',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
+                          style: TextStyle(
                               color: NxColors.textDim, fontSize: 12)),
                     ]),
               ),
@@ -609,12 +609,12 @@ class TournamentCard extends StatelessWidget {
             if (next != null) ...<Widget>[
               const SizedBox(height: 10),
               Row(children: <Widget>[
-                const Icon(Icons.timer_outlined,
+                Icon(Icons.timer_outlined,
                     size: 16, color: NxColors.textDim),
                 const SizedBox(width: 6),
                 Text('${momentLabel(context, next.$1)} ',
                     style:
-                        const TextStyle(color: NxColors.textDim, fontSize: 12)),
+                        TextStyle(color: NxColors.textDim, fontSize: 12)),
                 CountdownText(
                     to: next.$2,
                     style: TextStyle(
@@ -624,7 +624,7 @@ class TournamentCard extends StatelessWidget {
                 const Spacer(),
                 Text(fmtWhen(next.$2, withUtc: false),
                     style:
-                        const TextStyle(color: NxColors.textDim, fontSize: 11)),
+                        TextStyle(color: NxColors.textDim, fontSize: 11)),
               ]),
             ],
           ]),

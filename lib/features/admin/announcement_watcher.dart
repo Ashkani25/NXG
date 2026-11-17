@@ -65,9 +65,9 @@ class AnnouncementWatcher {
       backgroundColor: NxColors.navySoft,
       leading: const Icon(Icons.campaign_rounded, color: NxColors.gold),
       content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: <Widget>[
-        Text('${r['title'] ?? ''}', style: const TextStyle(fontWeight: FontWeight.w900, color: NxColors.iceWhite)),
+        Text('${r['title'] ?? ''}', style: TextStyle(fontWeight: FontWeight.w900, color: NxColors.iceWhite)),
         if ('${r['body'] ?? ''}'.isNotEmpty)
-          Text('${r['body']}', style: const TextStyle(color: NxColors.textDim)),
+          Text('${r['body']}', style: TextStyle(color: NxColors.textDim)),
       ]),
       actions: <Widget>[
         TextButton(onPressed: () => m.hideCurrentMaterialBanner(), child: const Text('OK')),

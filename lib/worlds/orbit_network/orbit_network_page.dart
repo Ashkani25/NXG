@@ -64,7 +64,7 @@ class _OrbitNetworkPageState extends ConsumerState<OrbitNetworkPage>
             onTap: () => Navigator.pop(c, 'channel'),
           ),
           ListTile(
-            leading: const Icon(Icons.person_add_alt_1_rounded,
+            leading: Icon(Icons.person_add_alt_1_rounded,
                 color: NxColors.textDim),
             title: Text(c.tx('چت خصوصی با دوست', 'Private chat with a friend')),
             subtitle: Text(ref.read(orbitControllerProvider).isOnline

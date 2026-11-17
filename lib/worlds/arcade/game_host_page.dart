@@ -109,8 +109,12 @@ class _GameHostPageState extends ConsumerState<GameHostPage> {
     return ok == true;
   }
 
+  /// Games always keep the dark NX2 / gameplay look, whatever the app theme (Settings › Theme).
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) =>
+      Theme(data: buildNxTheme(), child: Builder(builder: _buildGame));
+
+  Widget _buildGame(BuildContext context) {
     final s = ref.watch(settingsProvider);
     final p = ref.read(profileProvider);
     final launch = GameLaunch(
@@ -242,7 +246,7 @@ class _GameHostPageState extends ConsumerState<GameHostPage> {
                 padding: const EdgeInsets.only(top: 8),
                 child: Text(summary,
                     textAlign: TextAlign.center,
-                    style: const TextStyle(color: NxColors.textDim)),
+                    style: TextStyle(color: NxColors.textDimDark)),
               ),
             if (_oracleLine != null) OracleResultLine(text: _oracleLine!),
             if (a != null) ...[

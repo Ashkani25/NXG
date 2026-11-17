@@ -335,7 +335,7 @@ class _UsersTabState extends ConsumerState<_UsersTab> {
               Text(
                   '${u['guest'] == true ? context.tx('مهمان', 'guest') : (u['email'] ?? '')} · Lv ${u['level']} · '
                   '🪙 ${u['coins']} · 💎 ${u['gems']}',
-                  style: const TextStyle(color: NxColors.textDim, fontSize: 12)),
+                  style: TextStyle(color: NxColors.textDim, fontSize: 12)),
               if (banned && (u['ban_reason'] ?? '').toString().isNotEmpty)
                 Text('⛔ ${u['ban_reason']}', style: const TextStyle(color: NxColors.danger, fontSize: 12)),
               Wrap(spacing: 6, children: <Widget>[
@@ -439,7 +439,7 @@ class _AdminsTab extends ConsumerWidget {
                 child: Text(
                     context.tx('برای افزودن ادمین، کاربر را در زبانه‌ی «کاربران» پیدا کن و «دسترسی» را بزن.',
                         'To add an admin, find the user in Users and tap Access.'),
-                    style: const TextStyle(color: NxColors.textDim))),
+                    style: TextStyle(color: NxColors.textDim))),
             for (final dynamic e in rows)
               Builder(builder: (BuildContext context) {
                 final Map<String, dynamic> u = Map<String, dynamic>.from(e as Map);
@@ -461,7 +461,7 @@ class _AdminsTab extends ConsumerWidget {
                                 if (u['unlimited_gems'] == true) context.tx('جم نامحدود', 'unlimited gems')
                                 else if (u['gem_budget'] != null) context.tx('سقف جم ${u['gem_budget']}', 'gem budget ${u['gem_budget']}'),
                               ].join(' · '),
-                        style: const TextStyle(color: NxColors.textDim, fontSize: 12)),
+                        style: TextStyle(color: NxColors.textDim, fontSize: 12)),
                   ])),
                   if (u['owner'] != true)
                     IconButton(
@@ -535,7 +535,7 @@ class _ModerationTab extends ConsumerWidget {
                 Expanded(
                     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: <Widget>[
                   Text('${m['username'] ?? 'Pilot'} · ${_shortTime(m['created_at'])}',
-                      style: const TextStyle(color: NxColors.textDim, fontSize: 12)),
+                      style: TextStyle(color: NxColors.textDim, fontSize: 12)),
                   Text('${m['text'] ?? ''}', maxLines: 4, overflow: TextOverflow.ellipsis),
                 ])),
                 IconButton(
@@ -591,7 +591,7 @@ class _RoomsTab extends ConsumerWidget {
                     Text(
                         '${r['status']} · ${r['players']}/${r['seats']} · ${r['is_private'] == true ? context.tx('خصوصی', 'private') : context.tx('عمومی', 'public')}'
                         '${st['category'] != null ? ' · ${st['category']}' : ''} · ${r['host_name'] ?? ''}',
-                        style: const TextStyle(color: NxColors.textDim, fontSize: 12)),
+                        style: TextStyle(color: NxColors.textDim, fontSize: 12)),
                   ])),
                   IconButton(
                     tooltip: context.tx('بستن اتاق', 'Close room'),
@@ -682,7 +682,7 @@ class _AnnouncementsTab extends ConsumerWidget {
                       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: <Widget>[
                     Text('${a['title']}', style: const TextStyle(fontWeight: FontWeight.w900)),
                     Text('${a['body']}', maxLines: 3, overflow: TextOverflow.ellipsis),
-                    Text(_shortTime(a['created_at']), style: const TextStyle(color: NxColors.textDim, fontSize: 11)),
+                    Text(_shortTime(a['created_at']), style: TextStyle(color: NxColors.textDim, fontSize: 11)),
                   ])),
                   if (live)
                     TextButton(
@@ -735,7 +735,7 @@ class _AuditTab extends ConsumerWidget {
                     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: <Widget>[
                   Text('${x['action']} · ${x['actor_name'] ?? ''}${x['target_name'] != null ? ' → ${x['target_name']}' : ''}',
                       style: const TextStyle(fontWeight: FontWeight.w800)),
-                  Text(_shortTime(x['created_at']), style: const TextStyle(color: NxColors.textDim, fontSize: 11)),
+                  Text(_shortTime(x['created_at']), style: TextStyle(color: NxColors.textDim, fontSize: 11)),
                   if (x['data'] != null)
                     Text('${x['data']}', maxLines: 3, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 11)),
                 ]));

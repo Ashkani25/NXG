@@ -196,6 +196,9 @@ class NxPill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final Color pillColor = color ?? Nx2.cyan;
+    // Follow the ambient theme (games force dark even when the app is light).
+    final bool lt = Theme.of(context).brightness == Brightness.light;
+    final Color ink = lt ? (Color.lerp(pillColor, const Color(0xFF14092E), 0.5) ?? pillColor) : pillColor;
     return CustomPaint(
       painter: Nx2FramePainter(
         cut: 7,
@@ -203,7 +206,7 @@ class NxPill extends StatelessWidget {
         strokeWidth: 1.1,
         fill: LinearGradient(colors: <Color>[
           pillColor.withValues(alpha: 0.22),
-          const Color(0xE6120A33),
+          lt ? const Color(0xF2FFFFFF) : const Color(0xE6120A33),
         ]),
         border: LinearGradient(colors: <Color>[
           pillColor,
@@ -214,12 +217,12 @@ class NxPill extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
         child: Row(mainAxisSize: MainAxisSize.min, children: [
           if (icon != null) ...[
-            Icon(icon, size: 14, color: pillColor),
+            Icon(icon, size: 14, color: ink),
             const SizedBox(width: 4)
           ],
           Text(label,
               style: TextStyle(
-                  color: Color.lerp(pillColor, Colors.white, 0.35),
+                  color: lt ? ink : Color.lerp(pillColor, Colors.white, 0.35),
                   fontWeight: FontWeight.w800,
                   fontSize: 12)),
         ]),
@@ -257,10 +260,10 @@ class XpBar extends ConsumerWidget {
             style: const TextStyle(fontWeight: FontWeight.w800)),
         const SizedBox(width: 8),
         Text(context.tx(p.rankTitleFa, p.rankTitleEn),
-            style: const TextStyle(color: NxColors.textDim, fontSize: 12)),
+            style: TextStyle(color: NxColors.textDim, fontSize: 12)),
         const Spacer(),
         Text('${p.xpIntoLevel}/${ProfileService.xpForLevel(p.level)} XP',
-            style: const TextStyle(color: NxColors.textDim, fontSize: 12)),
+            style: TextStyle(color: NxColors.textDim, fontSize: 12)),
       ]),
       const SizedBox(height: 6),
       Nx2Progress(value: p.levelProgress, height: height),

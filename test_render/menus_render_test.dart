@@ -7,6 +7,7 @@ import 'package:nexora/core/profile/profile_service.dart';
 import 'package:nexora/core/settings/app_settings.dart';
 import 'package:nexora/core/storage/local_store.dart';
 import 'package:nexora/core/theme/nx_theme.dart';
+import 'package:nexora/core/ui2/nx2_widgets.dart';
 import 'package:nexora/features/tournaments/ui/tournaments_page.dart';
 import 'package:nexora/worlds/arcade/arcade_page.dart';
 import 'package:nexora/worlds/arcade/online/leaderboard_page.dart';
@@ -22,11 +23,14 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'render_util.dart';
 
 const String only = String.fromEnvironment('ONLY');
+const bool lightMode = bool.fromEnvironment('LIGHT');
 void main() {
   setUpAll(() async {
     SharedPreferences.setMockInitialValues(<String, Object>{'settings.lang': 'en'});
     await LocalStore.init();
     await loadFonts();
+    NxColors.light = lightMode;
+    Nx2.light = lightMode;
   });
   final Map<String, Widget Function()> pages = <String, Widget Function()>{
     'hub': () => const HubPage(),
@@ -58,7 +62,7 @@ void main() {
           container: c,
           child: MaterialApp.router(
             debugShowCheckedModeBanner: false,
-            theme: buildNxTheme(),
+            theme: buildNxTheme(light: lightMode),
             locale: Locale(lang),
             supportedLocales: const <Locale>[Locale('fa'), Locale('en')],
             localizationsDelegates: const <LocalizationsDelegate<dynamic>>[
@@ -72,7 +76,7 @@ void main() {
           ),
         ));
         await settle(tester, frames: 25);
-        await shoot(tester, 'menus/${e.key}_$lang.png');
+        await shoot(tester, '${lightMode ? 'menus_light' : 'menus'}/${e.key}_$lang.png');
         await tester.pumpWidget(const SizedBox.shrink());
         await tester.pump(const Duration(seconds: 1));
       });

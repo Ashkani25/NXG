@@ -337,7 +337,7 @@ Future<void> showMafiaLog(
                           isFa
                               ? 'هنوز چیزی ثبت نشده.'
                               : 'Nothing recorded yet.',
-                          style: const TextStyle(color: NxColors.textDim)))
+                          style: const TextStyle(color: NxColors.textDimDark)))
                   : ListView.builder(
                       reverse: true,
                       padding: const EdgeInsets.symmetric(

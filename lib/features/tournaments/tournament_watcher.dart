@@ -56,6 +56,16 @@ class TLocalNotifier {
     }
   }
 
+  /// Drops every pending/shown tournament notification (Settings › Notifications › Tournaments off).
+  static Future<void> cancelAll() async {
+    if (!_ready) return;
+    try {
+      await _p.cancelAll();
+    } catch (e) {
+      debugPrint('cancel: $e');
+    }
+  }
+
   static Future<void> scheduleAt(String key, DateTime utc, String title, String body, {String? payload}) async {
     if (!_ready || !utc.isAfter(DateTime.now().toUtc().add(const Duration(seconds: 20)))) return;
     try {
@@ -158,6 +168,8 @@ class TournamentWatcher with WidgetsBindingObserver {
 
   void _show(TNotification n) {
     if (!_seen.add(n.id)) return;
+    // Settings › Notifications › Tournaments.
+    if (!_ref.read(settingsProvider).notifyTournaments) return;
     final bool fa = _ref.read(settingsProvider).isFa;
     final String body = _text(n, fa);
     final String route = n.tournamentId == null ? '/tournaments' : '/tournaments/${n.tournamentId}';
@@ -183,7 +195,7 @@ class TournamentWatcher with WidgetsBindingObserver {
 
   /// Device-side 10-minute reminders for my approved tournaments and scheduled matches.
   Future<void> _scheduleReminders() async {
-    if (_uid == null) return;
+    if (_uid == null || !_ref.read(settingsProvider).notifyTournaments) return;
     final TournamentRepository repo = _ref.read(tournamentRepoProvider);
     if (!repo.available) return;
     final bool fa = _ref.read(settingsProvider).isFa;

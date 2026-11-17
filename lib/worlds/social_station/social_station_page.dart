@@ -332,7 +332,7 @@ class _Hero extends StatelessWidget {
                       Text(
                         context.tx('جامعه بساز، رویداد بچین، جام برگزار کن.',
                             'Build communities, plan events, host cups.'),
-                        style: const TextStyle(
+                        style: TextStyle(
                             color: NxColors.textDim, fontSize: 12),
                       ),
                     ]),
@@ -378,7 +378,7 @@ class _Hero extends StatelessWidget {
                               style:
                                   const TextStyle(fontWeight: FontWeight.w800)),
                           Text(nextCommunity!.name,
-                              style: const TextStyle(
+                              style: TextStyle(
                                   color: NxColors.textDim, fontSize: 12)),
                         ]),
                   ),
@@ -406,7 +406,7 @@ class _Stat extends StatelessWidget {
             style: TextStyle(
                 fontSize: 22, fontWeight: FontWeight.w900, color: color)),
         Text(label,
-            style: const TextStyle(color: NxColors.textDim, fontSize: 11)),
+            style: TextStyle(color: NxColors.textDim, fontSize: 11)),
       ]);
 }
 
@@ -482,7 +482,7 @@ class CommunityCard extends StatelessWidget {
                   Text(c.description,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(color: NxColors.textDim)),
+                      style: TextStyle(color: NxColors.textDim)),
                 ],
                 const SizedBox(height: 12),
                 Row(children: <Widget>[
@@ -526,7 +526,7 @@ class _Meta extends StatelessWidget {
           Icon(icon, size: 15, color: NxColors.textDim),
           const SizedBox(width: 3),
           Text(text,
-              style: const TextStyle(
+              style: TextStyle(
                   color: NxColors.textDim,
                   fontSize: 12,
                   fontWeight: FontWeight.w700)),

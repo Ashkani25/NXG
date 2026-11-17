@@ -280,7 +280,7 @@ class _RarityTiers extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(_rarityName(context, r),
                     style: TextStyle(
-                        color: rarityColor(r),
+                        color: Nx2.ink(rarityColor(r)),
                         fontSize: 11.5,
                         fontWeight: FontWeight.w900)),
               ]),
@@ -290,7 +290,7 @@ class _RarityTiers extends StatelessWidget {
         Text(
             context.tx('قیمت‌ها ثابت و شفاف‌اند؛ هیچ جعبه‌ی شانسی در کار نیست.',
                 'Fixed, transparent prices — no random boxes.'),
-            style: const TextStyle(color: Nx2.muted, fontSize: 11)),
+            style: TextStyle(color: Nx2.muted, fontSize: 11)),
       ]),
     );
   }

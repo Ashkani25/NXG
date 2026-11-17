@@ -1004,8 +1004,8 @@ class _UnoGameViewState extends State<UnoGameView>
                             fontSize: 11,
                             fontWeight: FontWeight.w700,
                             color: myDrawTurn
-                                ? NxColors.iceWhite
-                                : NxColors.textDim,
+                                ? NxColors.iceWhiteDark
+                                : NxColors.textDimDark,
                           ),
                         ),
                       ],
@@ -1037,7 +1037,7 @@ class _UnoGameViewState extends State<UnoGameView>
                           style: const TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.w800,
-                              color: NxColors.iceWhite),
+                              color: NxColors.iceWhiteDark),
                         ),
                       ),
                     ],
@@ -1110,7 +1110,7 @@ class _UnoGameViewState extends State<UnoGameView>
               textDirection: _l.isFa ? TextDirection.rtl : TextDirection.ltr,
               style: const TextStyle(
                   fontSize: 12,
-                  color: NxColors.textDim,
+                  color: NxColors.textDimDark,
                   fontWeight: FontWeight.w600),
             ),
           ),

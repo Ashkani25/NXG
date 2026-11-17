@@ -88,7 +88,7 @@ class _GamesGridState extends State<_GamesGrid> {
                           context.tx(
                               '${profile.totalGamesPlayed} بازی · ${profile.totalWins} برد',
                               '${profile.totalGamesPlayed} played · ${profile.totalWins} wins'),
-                          style: const TextStyle(
+                          style: TextStyle(
                               fontWeight: FontWeight.w800,
                               fontSize: 12.5,
                               color: Nx2.gold)),
@@ -97,7 +97,7 @@ class _GamesGridState extends State<_GamesGrid> {
                         context.tx(
                             'با بات هوشمند، دو نفره روی یک گوشی یا آنلاین.',
                             'Smart bots, two on one phone, or online.'),
-                        style: const TextStyle(
+                        style: TextStyle(
                             color: Nx2.muted, fontSize: 11.5, height: 1.35),
                       ),
                     ]),
@@ -214,20 +214,20 @@ class _GameTile extends StatelessWidget {
           Text(context.tx(game.nameFa, game.nameEn),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
+              style: TextStyle(
                   fontWeight: FontWeight.w900, fontSize: 14, color: Nx2.text)),
           Row(children: [
-            const Icon(Icons.people_alt_rounded, size: 13, color: Nx2.muted),
+            Icon(Icons.people_alt_rounded, size: 13, color: Nx2.muted),
             const SizedBox(width: 3),
             Text(
                 game.minPlayers == game.maxPlayers
                     ? '${game.minPlayers}'
                     : '${game.minPlayers}-${game.maxPlayers}',
-                style: const TextStyle(fontSize: 11, color: Nx2.muted)),
+                style: TextStyle(fontSize: 11, color: Nx2.muted)),
             const Spacer(),
             if (stats != null)
               Text('${stats!.won}/${stats!.played}',
-                  style: const TextStyle(fontSize: 11, color: Nx2.gold)),
+                  style: TextStyle(fontSize: 11, color: Nx2.gold)),
           ]),
           const SizedBox(height: 6),
           Nx2Button(

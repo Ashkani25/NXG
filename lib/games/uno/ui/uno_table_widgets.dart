@@ -80,7 +80,7 @@ class _StarDustPainter extends CustomPainter {
       final double x = r.nextDouble() * size.width;
       final double y = r.nextDouble() * size.height;
       final double a = 0.15 + r.nextDouble() * 0.55;
-      p.color = NxColors.iceWhite.withValues(alpha: a);
+      p.color = NxColors.iceWhiteDark.withValues(alpha: a);
       canvas.drawCircle(Offset(x, y), 0.4 + r.nextDouble() * 1.3, p);
     }
   }
@@ -227,7 +227,7 @@ class UnoSeatView extends StatelessWidget {
                     end: Alignment.bottomRight,
                   ),
                   border: Border.all(
-                      color: active ? NxColors.iceWhite : NxColors.glassBorder,
+                      color: active ? NxColors.iceWhiteDark : NxColors.glassBorder,
                       width: active ? 2.2 : 1),
                   boxShadow: <BoxShadow>[
                     BoxShadow(
@@ -240,7 +240,7 @@ class UnoSeatView extends StatelessWidget {
               );
             },
             child: Icon(isBot ? Icons.smart_toy_rounded : Icons.person_rounded,
-                color: NxColors.iceWhite, size: 24),
+                color: NxColors.iceWhiteDark, size: 24),
           ),
           const SizedBox(height: 4),
           Text(
@@ -250,7 +250,7 @@ class UnoSeatView extends StatelessWidget {
             style: TextStyle(
               fontSize: 12,
               fontWeight: active ? FontWeight.w800 : FontWeight.w600,
-              color: active ? NxColors.iceWhite : NxColors.textDim,
+              color: active ? NxColors.iceWhiteDark : NxColors.textDimDark,
             ),
           ),
           const SizedBox(height: 4),
@@ -291,7 +291,7 @@ class UnoSeatView extends StatelessWidget {
                         style: const TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w900,
-                            color: NxColors.iceWhite),
+                            color: NxColors.iceWhiteDark),
                       ),
                     ),
                   ),
@@ -361,7 +361,7 @@ class UnoColorPicker extends StatelessWidget {
                 style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w800,
-                    color: NxColors.iceWhite),
+                    color: NxColors.iceWhiteDark),
               ),
               const SizedBox(height: NxSpace.lg),
               Wrap(
@@ -403,7 +403,7 @@ class UnoColorPicker extends StatelessWidget {
                             unoColorName(c, isFa),
                             style: const TextStyle(
                                 fontSize: 12,
-                                color: NxColors.textDim,
+                                color: NxColors.textDimDark,
                                 fontWeight: FontWeight.w600),
                           ),
                         ],
@@ -415,7 +415,7 @@ class UnoColorPicker extends StatelessWidget {
               TextButton(
                 onPressed: onCancel,
                 child: Text(isFa ? 'انصراف' : 'Cancel',
-                    style: const TextStyle(color: NxColors.textDim)),
+                    style: const TextStyle(color: NxColors.textDimDark)),
               ),
             ],
           ),

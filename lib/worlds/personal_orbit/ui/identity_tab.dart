@@ -141,11 +141,11 @@ class IdentityTab extends ConsumerWidget {
             ],
           ),
           child: DefaultTextStyle.merge(
-            style: const TextStyle(color: NxColors.iceWhite),
+            style: TextStyle(color: NxColors.iceWhite),
             child: Theme(
               data: ThemeData.dark(useMaterial3: true),
               child: DefaultTextStyle.merge(
-                style: const TextStyle(color: NxColors.iceWhite),
+                style: TextStyle(color: NxColors.iceWhite),
                 child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: <Widget>[

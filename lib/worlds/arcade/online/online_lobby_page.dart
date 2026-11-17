@@ -604,7 +604,7 @@ class _OnlineLobbyPageState extends ConsumerState<OnlineLobbyPage> {
             Text(
                 context.tx('الان اتاق بازی نیست؛ یکی بساز یا «بازی سریع» بزن.',
                     'No open rooms right now — create one or tap Quick match.'),
-                style: const TextStyle(color: NxColors.textDim)),
+                style: TextStyle(color: NxColors.textDim)),
           for (final Map<String, dynamic> r in _open)
             Padding(
               padding: const EdgeInsets.only(bottom: 8),

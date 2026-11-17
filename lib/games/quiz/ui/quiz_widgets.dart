@@ -440,7 +440,7 @@ class QuizScoreChip extends StatelessWidget {
     required this.color,
     required this.icon,
     this.status,
-    this.statusColor = NxColors.textDim,
+    this.statusColor = NxColors.textDimDark,
     this.active = false,
   });
 

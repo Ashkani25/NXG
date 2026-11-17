@@ -109,7 +109,7 @@ class _UnoCardPainter extends CustomPainter {
     final UnoCard? maybe = faceUp ? card : null;
     final UnoColor? suit = maybe?.color;
     if (glow) {
-      final Color gc = suit == null ? NxColors.iceWhite : unoColorValue(suit);
+      final Color gc = suit == null ? NxColors.iceWhiteDark : unoColorValue(suit);
       canvas.drawRRect(
         rr.inflate(size.width * 0.03),
         Paint()
@@ -189,7 +189,7 @@ class _UnoCardPainter extends CustomPainter {
     canvas.restore();
 
     // Central symbol.
-    final Color symColor = c.isWild ? NxColors.iceWhite : dark;
+    final Color symColor = c.isWild ? NxColors.iceWhiteDark : dark;
     _paintSymbol(canvas, c, center, size.width * 0.40, symColor, true);
 
     // Corner indices.
@@ -257,7 +257,7 @@ class _UnoCardPainter extends CustomPainter {
         ..maskFilter = MaskFilter.blur(BlurStyle.normal, size.width * 0.05),
     );
     canvas.restore();
-    _text(canvas, 'NX', c, size.width * 0.30, NxColors.iceWhite, FontWeight.w900, shadow: NxColors.electricBlue);
+    _text(canvas, 'NX', c, size.width * 0.30, NxColors.iceWhiteDark, FontWeight.w900, shadow: NxColors.electricBlue);
   }
 
   void _paintSymbol(Canvas canvas, UnoCard c, Offset at, double s, Color color, bool big) {
@@ -301,7 +301,7 @@ class _UnoCardPainter extends CustomPainter {
       case UnoKind.wildDrawFour:
         if (big) {
           _paintWildDiamond(canvas, at - Offset(0, s * 0.18), s * 0.6);
-          _text(canvas, '+4', at + Offset(0, s * 0.42), s * 0.6, NxColors.iceWhite, FontWeight.w900,
+          _text(canvas, '+4', at + Offset(0, s * 0.42), s * 0.6, NxColors.iceWhiteDark, FontWeight.w900,
               shadow: const Color(0xAA000000));
         } else {
           _text(canvas, '+4', at, s * 0.8, color, FontWeight.w900);

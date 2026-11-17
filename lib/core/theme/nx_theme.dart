@@ -11,7 +11,11 @@ class NxColors {
   static const navySoft = Color(0xFF141B45);
   static const electricBlue = Color(0xFF00C2FF);
   static const violet = Color(0xFF7B3FF2);
-  static const iceWhite = Color(0xFFEAF6FF);
+  /// Daylight theme flag (Settings › Theme). Set by the app before building; game screens keep the dark
+  /// gameplay colours ([iceWhiteDark], [textDimDark]).
+  static bool light = false;
+  static Color get iceWhite => light ? const Color(0xFF1B1240) : iceWhiteDark;
+  static const iceWhiteDark = Color(0xFFEAF6FF);
   static const turquoise = Color(0xFF2EE6D6);
   static const gold = Color(0xFFFFC857);
   static const pink = Color(0xFFFF4FA3);
@@ -19,7 +23,8 @@ class NxColors {
   static const success = Color(0xFF3DDC97);
   static const glass = Color(0x22FFFFFF);
   static const glassBorder = Color(0x44FFFFFF);
-  static const textDim = Color(0xB3EAF6FF);
+  static Color get textDim => light ? const Color(0xCC3B2F6B) : textDimDark;
+  static const textDimDark = Color(0xB3EAF6FF);
 }
 
 enum NxVisualTheme { gold, neon }
@@ -75,6 +80,27 @@ class NxThemeColors extends ThemeExtension<NxThemeColors> {
     muted: Color(0xFFBFB3E6),
   );
 
+  /// Daylight variant of the NX2 skin (Settings › Theme › Light): same neon accents, light surfaces, dark text.
+  static const light = NxThemeColors(
+    accent: Color(0xFF0B84C9),
+    accentSecondary: Color(0xFF7B2FE0),
+    background: Color(0xFFF1ECFF),
+    backgroundMid: Color(0xFFE4DBFF),
+    surface: Color(0xF2FFFFFF),
+    surfaceRaised: Color(0xFFFFFFFF),
+    border: Color(0xFF9C7BEA),
+    text: Color(0xFF1B1240),
+    muted: Color(0xFF574A85),
+  );
+
+  /// High-contrast tweak (Settings › Accessibility): stronger text/borders, opaque surfaces.
+  NxThemeColors highContrast(bool light) => copyWith(
+        text: light ? const Color(0xFF000000) : const Color(0xFFFFFFFF),
+        muted: light ? const Color(0xFF2A2050) : const Color(0xFFE6E0FF),
+        border: light ? const Color(0xFF3B1E9E) : const Color(0xFFD0B8FF),
+        surface: Color.alphaBlend(surface, light ? const Color(0xFFFFFFFF) : const Color(0xFF000000)),
+      );
+
   /// Original visual language used inside active game boards and their HUDs.
   static const gameplay = NxThemeColors(
     accent: NxColors.electricBlue,
@@ -84,8 +110,8 @@ class NxThemeColors extends ThemeExtension<NxThemeColors> {
     surface: NxColors.glass,
     surfaceRaised: NxColors.navySoft,
     border: NxColors.glassBorder,
-    text: NxColors.iceWhite,
-    muted: NxColors.textDim,
+    text: NxColors.iceWhiteDark,
+    muted: NxColors.textDimDark,
     premiumPanels: false,
   );
 
@@ -191,26 +217,40 @@ class NxMotion {
   static const curve = Curves.easeOutCubic;
 }
 
-/// The NX2 redesign ships one skin: cosmic neon. [style] is kept for API compatibility.
-ThemeData buildNxTheme([NxVisualTheme style = NxVisualTheme.neon]) =>
-    _buildTheme(NxThemeColors.neon);
+/// NX2 cosmic neon skin, dark (default) or daylight ([light]); [highContrast] from Settings › Accessibility.
+/// Game screens always use the dark skin.
+ThemeData buildNxTheme({bool light = false, bool highContrast = false}) {
+  NxThemeColors v = light ? NxThemeColors.light : NxThemeColors.neon;
+  if (highContrast) v = v.highContrast(light);
+  return _buildTheme(v, light: light);
+}
 
 /// Preserve the original Finger Soccer field, ball and player-disc palette.
 ThemeData buildNxGameplayTheme() => _buildTheme(NxThemeColors.gameplay);
 
-ThemeData _buildTheme(NxThemeColors visual) {
-  final scheme = ColorScheme.dark(
-    primary: visual.accent,
-    secondary: visual.accentSecondary,
-    tertiary:
-        visual.premiumPanels ? visual.accentSecondary : NxColors.turquoise,
-    surface: visual.surfaceRaised,
-    error: NxColors.danger,
-    onPrimary: const Color(0xFF08101A),
-    onSurface: visual.text,
-  );
+ThemeData _buildTheme(NxThemeColors visual, {bool light = false}) {
+  final scheme = light
+      ? ColorScheme.light(
+          primary: visual.accent,
+          secondary: visual.accentSecondary,
+          tertiary: visual.accentSecondary,
+          surface: visual.surfaceRaised,
+          error: const Color(0xFFC62842),
+          onPrimary: Colors.white,
+          onSurface: visual.text,
+        )
+      : ColorScheme.dark(
+          primary: visual.accent,
+          secondary: visual.accentSecondary,
+          tertiary:
+              visual.premiumPanels ? visual.accentSecondary : NxColors.turquoise,
+          surface: visual.surfaceRaised,
+          error: NxColors.danger,
+          onPrimary: const Color(0xFF08101A),
+          onSurface: visual.text,
+        );
   final base = ThemeData(
-      useMaterial3: true, colorScheme: scheme, brightness: Brightness.dark);
+      useMaterial3: true, colorScheme: scheme, brightness: light ? Brightness.light : Brightness.dark);
   return base.copyWith(
     extensions: <ThemeExtension<dynamic>>[visual],
     pageTransitionsTheme: const PageTransitionsTheme(builders: <TargetPlatform, PageTransitionsBuilder>{
@@ -303,7 +343,7 @@ ThemeData _buildTheme(NxThemeColors visual) {
     ),
     progressIndicatorTheme: ProgressIndicatorThemeData(color: visual.accent),
     navigationBarTheme: NavigationBarThemeData(
-      backgroundColor: const Color(0xF2140A3A),
+      backgroundColor: light ? const Color(0xF2FFFFFF) : const Color(0xF2140A3A),
       indicatorColor: visual.accentSecondary.withValues(alpha: 0.35),
       surfaceTintColor: Colors.transparent,
       labelTextStyle: WidgetStatePropertyAll<TextStyle>(TextStyle(
@@ -312,7 +352,7 @@ ThemeData _buildTheme(NxThemeColors visual) {
           IconThemeData(color: visual.text)),
     ),
     chipTheme: ChipThemeData(
-      backgroundColor: const Color(0xE61A0C45),
+      backgroundColor: light ? const Color(0xF2FFFFFF) : const Color(0xE61A0C45),
       selectedColor: visual.accentSecondary.withValues(alpha: 0.45),
       side: BorderSide(color: visual.border.withValues(alpha: 0.7)),
       labelStyle: TextStyle(color: visual.text, fontWeight: FontWeight.w700),
@@ -324,12 +364,12 @@ ThemeData _buildTheme(NxThemeColors visual) {
       trackColor: WidgetStateProperty.resolveWith<Color?>((Set<WidgetState> s) =>
           s.contains(WidgetState.selected)
               ? visual.accentSecondary
-              : const Color(0x33FFFFFF)),
+              : (light ? const Color(0x33000000) : const Color(0x33FFFFFF))),
     ),
     sliderTheme: SliderThemeData(
       activeTrackColor: visual.accent,
-      thumbColor: Colors.white,
-      inactiveTrackColor: const Color(0x33FFFFFF),
+      thumbColor: light ? visual.accent : Colors.white,
+      inactiveTrackColor: light ? const Color(0x33000000) : const Color(0x33FFFFFF),
     ),
   );
 }

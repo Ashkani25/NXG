@@ -52,7 +52,7 @@ class _SocialHubPageState extends ConsumerState<SocialHubPage> {
       child: Container(
         padding: const EdgeInsets.all(4),
         decoration: BoxDecoration(
-          color: const Color(0xE6140A36),
+          color: Nx2.light ? const Color(0xF2FFFFFF) : const Color(0xE6140A36),
           borderRadius: BorderRadius.circular(18),
           border: Border.all(color: Nx2.cyan.withValues(alpha: 0.45)),
         ),

@@ -174,7 +174,7 @@ class CommunityFeedTab extends ConsumerWidget {
                   Text(a.text, style: const TextStyle(fontWeight: FontWeight.w700, height: 1.4)),
                   const SizedBox(height: 4),
                   Text('${a.authorName} · ${formatDateTime(a.at)}',
-                      style: const TextStyle(color: NxColors.textDim, fontSize: 11)),
+                      style: TextStyle(color: NxColors.textDim, fontSize: 11)),
                 ]),
               ),
               if (CommunityPermissions.canAnnounce(role))
@@ -198,7 +198,7 @@ class CommunityFeedTab extends ConsumerWidget {
           const SizedBox(width: 10),
           Expanded(
               child: Text(context.tx('برای جامعه بنویس…', 'Write to the community…'),
-                  style: const TextStyle(color: NxColors.textDim))),
+                  style: TextStyle(color: NxColors.textDim))),
           Icon(Icons.send_rounded, color: kSocialPalette.primary),
         ]),
       ),
@@ -257,7 +257,7 @@ class _PostCard extends ConsumerWidget {
                   Icon(Icons.verified_rounded, size: 14, color: roleColor(authorRole)),
                 ],
               ]),
-              Text(formatDateTime(p.at), style: const TextStyle(color: NxColors.textDim, fontSize: 11)),
+              Text(formatDateTime(p.at), style: TextStyle(color: NxColors.textDim, fontSize: 11)),
             ]),
           ),
           if (p.pinned) Icon(Icons.push_pin_rounded, size: 18, color: kSocialPalette.secondary),
@@ -363,12 +363,12 @@ class _EventCard extends ConsumerWidget {
             Expanded(
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: <Widget>[
                 Text(e.title, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w900)),
-                Text(formatDateTime(e.startsAt), style: const TextStyle(color: NxColors.textDim, fontSize: 12)),
+                Text(formatDateTime(e.startsAt), style: TextStyle(color: NxColors.textDim, fontSize: 12)),
               ]),
             ),
             if (!past)
               Column(crossAxisAlignment: CrossAxisAlignment.end, children: <Widget>[
-                Text(context.tx('تا شروع', 'Starts in'), style: const TextStyle(color: NxColors.textDim, fontSize: 10)),
+                Text(context.tx('تا شروع', 'Starts in'), style: TextStyle(color: NxColors.textDim, fontSize: 10)),
                 CountdownText(target: e.startsAt, style: TextStyle(color: accent, fontWeight: FontWeight.w900, fontSize: 15)),
               ])
             else
@@ -409,7 +409,7 @@ class _EventCard extends ConsumerWidget {
               if (canManage)
                 IconButton(
                   tooltip: context.tx('حذف رویداد', 'Delete event'),
-                  icon: const Icon(Icons.delete_outline_rounded, color: NxColors.textDim),
+                  icon: Icon(Icons.delete_outline_rounded, color: NxColors.textDim),
                   onPressed: () async {
                     final bool yes = await confirmAction(context, fa: 'این رویداد حذف شود؟', en: 'Delete this event?');
                     if (yes) await ctrl.deleteEvent(community.id, e.id, me.id);
@@ -621,7 +621,7 @@ class CommunityAboutTab extends ConsumerWidget {
       ),
       SocialSectionTitle(context.tx('قوانین جامعه', 'Community rules')),
       if (c.rules.isEmpty)
-        Text(context.tx('قانونی ثبت نشده.', 'No rules set.'), style: const TextStyle(color: NxColors.textDim))
+        Text(context.tx('قانونی ثبت نشده.', 'No rules set.'), style: TextStyle(color: NxColors.textDim))
       else
         GlassPanel(
           child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: <Widget>[
@@ -652,7 +652,7 @@ class CommunityAboutTab extends ConsumerWidget {
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: <Widget>[
               Text(c.inviteCode, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, letterSpacing: 2)),
               Text(context.tx('کپی کد یا ارسال به ORBIT NETWORK', 'Copy the code or send it to ORBIT NETWORK'),
-                  style: const TextStyle(color: NxColors.textDim, fontSize: 12)),
+                  style: TextStyle(color: NxColors.textDim, fontSize: 12)),
             ]),
           ),
           const Icon(Icons.ios_share_rounded),

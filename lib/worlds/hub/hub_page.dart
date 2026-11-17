@@ -196,7 +196,7 @@ class _Hud extends StatelessWidget {
                     Text(name,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
+                        style: TextStyle(
                             fontWeight: FontWeight.w900,
                             fontSize: 14,
                             color: Nx2.text)),
@@ -205,7 +205,7 @@ class _Hud extends StatelessWidget {
                         '${context.tx('سطح', 'LV')} ${profile.level} · ${context.tx(profile.rankTitleFa, profile.rankTitleEn)}',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
+                        style: TextStyle(
                             fontSize: 10.5,
                             color: Nx2.muted,
                             fontWeight: FontWeight.w700)),
@@ -308,10 +308,10 @@ class _DailyCard extends StatelessWidget {
           const SizedBox(width: 8),
           Expanded(
             child: Text(context.tx('جایزه‌ی امروز آماده است', "Today's reward is ready"),
-                style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13.5, color: Nx2.gold)),
+                style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13.5, color: Nx2.gold)),
           ),
           Text(context.tx('بگیر', 'CLAIM'),
-              style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13, color: Nx2.text)),
+              style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13, color: Nx2.text)),
         ]),
       ),
     );
@@ -347,14 +347,14 @@ class _ActivityStrip extends StatelessWidget {
                       Text(context.tx('لیگ و تورنمنت', 'Leagues & Cups'),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
+                          style: TextStyle(
                               fontWeight: FontWeight.w900,
                               fontSize: 12.5,
                               color: Nx2.gold)),
                       Text(context.tx('ثبت‌نام و جایزه', 'Join & win prizes'),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(fontSize: 11, color: Nx2.muted)),
+                          style: TextStyle(fontSize: 11, color: Nx2.muted)),
                     ]),
               ),
             ]),
@@ -376,14 +376,14 @@ class _ActivityStrip extends StatelessWidget {
                   const SizedBox(height: 2),
                   if (recent.isEmpty)
                     Text(context.tx('هنوز چیزی نیست', 'Nothing yet'),
-                        style: const TextStyle(fontSize: 11, color: Nx2.muted))
+                        style: TextStyle(fontSize: 11, color: Nx2.muted))
                   else
                     for (final ActivityEntry a in recent)
                       Text(context.tx(a.textFa, a.textEn),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style:
-                              const TextStyle(fontSize: 11, color: Nx2.muted)),
+                              TextStyle(fontSize: 11, color: Nx2.muted)),
                 ]),
           ),
         ),
