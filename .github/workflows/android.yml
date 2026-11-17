@@ -62,6 +62,13 @@ jobs:
         run: |
           mkdir -p ~/.android
           if [ -n "$NEXORA_KEYSTORE_B64" ]; then echo "$NEXORA_KEYSTORE_B64" | base64 -d > ~/.android/debug.keystore; fi
+          if [ ! -f ~/.android/debug.keystore ] && [ "$GITHUB_REF" = "refs/heads/nexora-online-redesign" ]; then
+            # Test branch only (never publishes): without the install key, sign with a throwaway CI key so the
+            # APK artifact still builds. It cannot update an install signed with the real NEXORA key.
+            echo "::warning::NEXORA_KEYSTORE_B64 missing: signing the nexora-online-redesign test APK with a throwaway key"
+            keytool -genkeypair -v -keystore ~/.android/debug.keystore -storepass android -keypass android \
+              -alias androiddebugkey -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
+          fi
           if [ ! -f ~/.android/debug.keystore ]; then
             echo "ERROR: NEXORA_KEYSTORE_B64 is not configured and the signing-key cache is unavailable." >&2
             echo "Configure the same keystore used by the installed NEXORA APK before publishing another update." >&2
