@@ -13,6 +13,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:nexora/games/core/game_contract.dart';
 import '../core/bm_data.dart';
 import '../core/bm_engine.dart';
+import 'bm_anim_ball_preview.dart';
 import 'bm_audio.dart';
 import 'bm_ball.dart';
 import 'bm_painter.dart';
@@ -53,7 +54,7 @@ class _Setup {
         t,
         i('form').clamp(0, kBmForms.length - 1).toInt(),
         i('field').clamp(0, kBmFields.length - 1).toInt(),
-        i('ball').clamp(0, NB - 1).toInt());
+        i('ball').clamp(0, kBmBallCount - 1).toInt());
   }
 }
 
@@ -134,7 +135,7 @@ class _BermudaViewState extends State<BermudaView>
           kBmTeams.any((BmTeam x) => x.id == t) ? t : 'club0',
           (p.getInt('bm.form') ?? 0).clamp(0, kBmForms.length - 1).toInt(),
           (p.getInt('bm.field') ?? 0).clamp(0, kBmFields.length - 1).toInt(),
-          (p.getInt('bm.ball') ?? 0).clamp(0, NB - 1).toInt());
+          (p.getInt('bm.ball') ?? 0).clamp(0, kBmBallCount - 1).toInt());
       _cat = math.max(0,
           kBmCats.indexWhere((List<Object> c) => c[0] == bmTeam(my.team).cat));
       audio.announcer = p.getBool('bm.ann') ??
@@ -1424,7 +1425,7 @@ class _BermudaViewState extends State<BermudaView>
                           height: 98,
                           child: ListView.builder(
                             scrollDirection: Axis.horizontal,
-                            itemCount: NB,
+                            itemCount: kBmBallCount,
                             itemBuilder: (BuildContext c, int i) {
                               final bool on = my.ball == i;
                               return GestureDetector(
@@ -1454,9 +1455,12 @@ class _BermudaViewState extends State<BermudaView>
                                   child: Column(
                                     children: <Widget>[
                                       Expanded(
-                                          child: Image.asset(
-                                              '${_a}balls/b$i.webp',
-                                              cacheWidth: 112)),
+                                          child: kBmAnimBalls[i] != null
+                                              ? BmAnimBallPreview(
+                                                  ball: kBmAnimBalls[i]!)
+                                              : Image.asset(
+                                                  '${_a}balls/b$i.webp',
+                                                  cacheWidth: 112)),
                                       Text(kBmBallN[i],
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis,

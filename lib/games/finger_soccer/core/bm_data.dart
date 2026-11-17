@@ -112,8 +112,19 @@ const List<String> kBmTRN = <String>["Bolt", "Prism", "Wave", "Starlight", "Smok
 
 const List<String> kBmBallN = <String>["Bolt", "Prism", "Wave", "Starlight", "Classic", "Rainbow", "Neon", "Yin", "Fire", "Blade", "Ghost", "Ember", "Plasma", "Noir Copper", "Space Modern", "Purple Sky", "Black Lux", "Electron", "Cobalt Gold", "Aurora", "Crimson", "Teal Storm", "Royal Gold", "Gold Rush", "Classic Red", "Luxury", "Noir Chrome", "Violet Strike", "Emerald Edge", "Royal Blue Gold", "Crimson Noir", "Blaze Orange", "Aqua Wave", "Sunset Pro", "Elite Cobalt", "Crown Luxury", "NX Spin", "NX Final"];
 
-/// Animated sprite-sheet balls (owner GIFs, frames side by side, 256 px each). Collision radius is unchanged:
+/// Animated sprite-sheet balls, generated frame-for-frame from the owner's GIFs
+/// (`assets/games/finger_soccer/source/*.gif`, not bundled): every frame in GIF order, cropped to the ball circle,
+/// 256 px per frame, side by side. `frameMs` is the GIF's own frame duration. Collision radius is unchanged:
 /// they are drawn at the same BR as every other ball.
+/// Number of selectable match balls: the 36 classic balls (engine `NB`) + the two animated NX balls (36, 37).
+const int kBmBallCount = 38;
+
+/// GIF playback: index of the frame shown at [ms] (any monotonic clock) for a sheet of [frames] at [frameMs] each.
+int bmAnimFrame(double ms, int frameMs, int frames) {
+  if (frames <= 0 || frameMs <= 0 || ms.isNaN || ms < 0) return 0;
+  return (ms / frameMs).floor() % frames;
+}
+
 class BmAnimBall {
   const BmAnimBall(this.sheet, this.frames, this.frameMs);
   final String sheet;
@@ -123,7 +134,7 @@ class BmAnimBall {
 
 const Map<int, BmAnimBall> kBmAnimBalls = <int, BmAnimBall>{
   36: BmAnimBall('assets/games/finger_soccer/nx_ball_a.webp', 12, 130),
-  37: BmAnimBall('assets/games/finger_soccer/nx_ball_b.webp', 9, 120),
+  37: BmAnimBall('assets/games/finger_soccer/nx_ball_b.webp', 9, 180),
 };
 
 class BmFa {

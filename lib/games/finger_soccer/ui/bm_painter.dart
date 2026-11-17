@@ -11,11 +11,11 @@ import 'bm_ball.dart';
 
 class BmImages {
   ui.Image? field, goal, ball;
-  // Animated sprite-sheet ball (kBmAnimBalls): frames advance with distance rolled + a slow idle spin.
+  // Animated sprite-sheet ball (kBmAnimBalls): plays exactly like the owner's GIF — frames in order at the GIF's own
+  // frame time, continuously, never rotated/flipped/stretched by velocity or seat.
   ui.Image? ballSheet;
   int ballFrames = 0;
-  int ballFrameMs = 120;
-  double animPhase = 0, animX = double.nan, animY = double.nan, animT = 0;
+  int ballFrameMs = 130;
   final List<ui.Image?> team = <ui.Image?>[null, null];
   BmBallRenderer? ballR;
   // cached background (blurred cover + faded field), keyed by size/field
@@ -227,30 +227,24 @@ class BmPainter extends CustomPainter {
       canvas.drawOval(Rect.fromCenter(center: Offset(b.x + so * .35, b.y + so), width: b.r * .86 * 2, height: b.r * .34 * 2),
           Paint()..color = _rgba(8, 14, 24, .42 * .8));
       canvas.translate(b.x, b.y);
+      final ui.Image? sheet = im.ballSheet;
+      final ui.Image? rendered = br?.image;
+      if (sheet != null && im.ballFrames > 0) {
+        // GIF playback: frame = elapsed / frameMs (wall clock), one drawImageRect, sprite kept upright.
+        final int fi = bmAnimFrame(t, im.ballFrameMs, im.ballFrames);
+        final double fw = sheet.width / im.ballFrames;
+        canvas.drawImageRect(sheet, Rect.fromLTWH(fi * fw, 0, fw, sheet.height.toDouble()), dst,
+            Paint()..filterQuality = FilterQuality.medium);
+        canvas.restore();
+        return;
+      }
       if (sv > 40) {
         final double a = math.atan2(b.vy, b.vx), st = math.min(.16, fast * .12) + b.sq * .12, sq = b.sq * .1;
         canvas.rotate(a);
         canvas.scale(1 + st - sq, 1 - st * .55 + sq);
         canvas.rotate(-a);
       }
-      final ui.Image? sheet = im.ballSheet;
-      final ui.Image? rendered = br?.image;
-      if (sheet != null && im.ballFrames > 0) {
-        // distance-driven roll (one frame per ~0.45 radius) + idle spin at a quarter of the GIF speed
-        if (!im.animX.isNaN) {
-          final double dx = b.x - im.animX, dy = b.y - im.animY;
-          im.animPhase += math.sqrt(dx * dx + dy * dy) / (b.r * .45);
-        }
-        if (im.animT > 0) im.animPhase += (t - im.animT).clamp(0, 100) / (im.ballFrameMs * 4);
-        im.animX = b.x;
-        im.animY = b.y;
-        im.animT = t;
-        final int fi = im.animPhase.floor() % im.ballFrames;
-        final double fw = sheet.width / im.ballFrames;
-        if (sv > 40) canvas.rotate(math.atan2(b.vy, b.vx) + math.pi / 2);
-        canvas.drawImageRect(sheet, Rect.fromLTWH(fi * fw, 0, fw, sheet.height.toDouble()), dst,
-            Paint()..filterQuality = FilterQuality.medium);
-      } else if (rendered != null) {
+      if (rendered != null) {
         canvas.drawImageRect(rendered, Rect.fromLTWH(0, 0, rendered.width.toDouble(), rendered.height.toDouble()), dst,
             Paint()..filterQuality = FilterQuality.medium);
       } else {
